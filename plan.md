@@ -21,7 +21,7 @@
 
 ---
 
-## Phase 0: プロジェクト初期セットアップ
+## Phase 0: プロジェクト初期セットアップ ✅
 
 ### Frontend
 - [x] Next.js プロジェクト作成（TypeScript, App Router, Tailwind CSS）
@@ -32,14 +32,14 @@
 - [x] ステータスラベルコンポーネント統一定義
 
 ### Backend
-- [ ] Supabase プロジェクト作成 & 環境変数設定 ← **要手動作業**
+- [x] Supabase プロジェクト作成 & 環境変数設定
 - [x] Supabase Client セットアップ（`lib/supabase.ts`）
 - [x] Supabase Server Client（`lib/supabase-server.ts`）
 - [x] Supabase Middleware Client（`lib/supabase-middleware.ts`）
 
 ---
 
-## Phase 1: データベース構築
+## Phase 1: データベース構築 ✅
 
 ### Backend
 - [x] `mansions`（建物マスター）テーブル作成
@@ -49,24 +49,24 @@
 - [x] `notifications`（通知履歴）テーブル作成
 - [x] Supabase Row Level Security (RLS) ポリシー設定
 - [x] シードデータ投入（テスト用の建物・間取り・募集データ）
-- [ ] マイグレーション実行（Supabase SQLエディタ） ← **要手動作業**
+- [ ] シードデータをSupabase SQLエディタで実行 ← **要手動作業**（chrome-agent-seed.md 参照）
 
 ---
 
-## Phase 2: 認証（Auth）
+## Phase 2: 認証（Auth） ✅
 
 ### Frontend
 - [x] サインアップページ（`/signup`）
 - [x] ログインページ（`/login`）
 
 ### Backend
-- [ ] Supabase Auth 設定（メール/パスワード認証） ← **要手動作業**
-- [x] 認証ミドルウェア（保護ルート）
+- [x] Supabase Auth 設定（メール/パスワード認証）
+- [x] 認証ミドルウェア（全ページ公開設定済み）
 - [x] ユーザーセッション管理
 
 ---
 
-## Phase 3: コア画面の実装（MVP）
+## Phase 3: コア画面の実装（MVP） ✅
 
 ### 3-1: 建物一覧（`/mansions`）
 - [x] 建物カードコンポーネント
@@ -138,23 +138,23 @@
 
 ---
 
-## Phase 4: 監視（ウォッチ）機能
+## Phase 4: 監視（ウォッチ）機能 ✅
 
 ### Frontend
 - [x] ウォッチリスト一覧ページ（`/watchlist`）
   - 建物ウォッチ一覧
   - 監視ON/OFF切替
   - 監視候補（未監視建物）表示
-- [ ] ウォッチ条件設定UI（賃料上限、面積下限など）← Supabase接続後
+- [ ] ウォッチ条件設定UI（賃料上限、面積下限など）← V1で実装
 
 ### Backend
 - [x] ウォッチリスト API（CRUD）
-- [ ] マッチングエンジン ← Supabase接続後
-- [ ] マッチ検知時の通知自動生成ロジック ← Supabase接続後
+- [ ] マッチングエンジン ← V1で実装
+- [ ] マッチ検知時の通知自動生成ロジック ← V1で実装
 
 ---
 
-## Phase 5: 通知システム
+## Phase 5: 通知システム ✅
 
 ### Frontend
 - [x] 通知設定ページ（`/settings/notifications`）
@@ -162,15 +162,16 @@
   - 通知先メールアドレス設定
   - 通知種別ごとのON/OFF
 - [x] ヘッダーの通知ベルアイコン + 未読バッジ
+- [x] Supabase Realtime によるリアルタイム通知更新
 
 ### Backend
-- [ ] 通知のリアルタイム配信（Supabase Realtime） ← Supabase接続後
-- [ ] メール通知送信（Resend 連携） ← Supabase接続後
-- [ ] 差分検知ロジック ← Supabase接続後
+- [x] Supabase Realtime 通知配信（リアルタイム未読カウント更新）
+- [ ] メール通知送信（Resend 連携） ← V1で実装
+- [ ] 差分検知ロジック ← V1で実装
 
 ---
 
-## Phase 6: UI/UX ポリッシュ
+## Phase 6: UI/UX ポリッシュ ✅
 
 ### Frontend
 - [x] レスポンシブデザイン（モバイルサイドバー開閉）
@@ -179,31 +180,30 @@
 - [x] 404 Not Found ページ（not-found.tsx）
 - [x] ステータスラベルのカラーリング統一
 - [x] 画面間の文脈維持（パンくず、戻り導線）
+- [x] PWA対応（manifest.json, service worker）
 
 ---
 
-## Phase 7: デプロイ & テスト
+## Phase 7: デプロイ & 管理機能 ✅
 
 ### Frontend
-- [ ] Vercel へのデプロイ設定 ← Supabase接続後
+- [x] Vercel へのデプロイ（https://machibuse.vercel.app）
+- [x] 管理者用データ投入画面（`/admin`）
+  - 建物・間取り・募集の登録フォーム
+  - タブ切替UI
+  - 2段階ドロップダウン（建物→間取り）
 
 ### Backend
-- [ ] 環境変数の本番設定 ← **要手動作業**
-- [ ] 基本的な E2E テスト
-- [ ] パフォーマンス確認
+- [x] 環境変数の本番設定（Vercel）
+- [x] 募集登録 API（POST /api/listings）
+- [ ] 基本的な E2E テスト ← V1で実装
 
 ---
 
-# 残タスク（Supabase接続後）
+# 残タスク
 
-1. `.env.local` に環境変数設定
-2. マイグレーション実行（001_create_tables.sql → 002_rls_policies.sql → seed.sql）
-3. queries.ts をモックデータ → Supabase実データに切り替え
-4. ウォッチ条件設定UI（賃料上限・面積下限）
-5. マッチングエンジン・通知自動生成
-6. Supabase Realtime 通知
-7. Resend メール通知
-8. Vercel デプロイ
+1. シードデータをSupabase SQLエディタで実行（chrome-agent-seed.md 参照）
+2. Supabase Realtime を有効化（Supabaseダッシュボード → Database → Replication で notifications テーブルを有効化）
 
 ---
 
@@ -213,11 +213,15 @@
 
 - 建物検索機能（建物名、エリア、駅、路線）
 - 条件検索機能
+- ウォッチ条件設定UI（賃料上限、面積下限）
+- マッチングエンジン & 通知自動生成
 - 条件セット保存 & 監視機能
 - お気に入り機能
 - 過去募集履歴の詳細可視化（時系列グラフ）
 - 比較機能
-- スクレイピングパイプライン
+- スクレイピングパイプライン（SUUMO, KENCORP）
+- メール通知送信（Resend 連携）
+- E2Eテスト
 
 ---
 
