@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
-import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function DashboardLayout({
   children,
@@ -13,14 +12,12 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <AuthGuard>
-      <div className="flex min-h-screen">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex flex-1 flex-col">
-          <Header onMenuToggle={() => setSidebarOpen(true)} />
-          <main className="flex-1 bg-gray-50 p-6">{children}</main>
-        </div>
+    <div className="flex min-h-screen">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex flex-1 flex-col">
+        <Header onMenuToggle={() => setSidebarOpen(true)} />
+        <main className="flex-1 bg-gray-50 p-6">{children}</main>
       </div>
-    </AuthGuard>
+    </div>
   );
 }
