@@ -11,6 +11,15 @@ export interface Mansion {
   construction_date: string | null;
   features: string | null;
   memo: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  structure: string | null;
+  exterior_image_url: string | null;
+  second_nearest_station: string | null;
+  second_walking_minutes: number | null;
+  management_company: string | null;
+  pet_allowed: boolean;
+  parking_available: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +37,10 @@ export interface Unit {
   floorplan_url: string | null;
   last_rent: number | null;
   memo: string | null;
+  floorplan_image_url: string | null;
+  balcony_sqm: number | null;
+  bath_toilet_separate: boolean | null;
+  storage: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +60,38 @@ export interface Listing {
   detected_at: string;
   ended_at: string | null;
   scraped_at: string | null;
+  deposit: number | null;
+  key_money: number | null;
+  guarantee_deposit: number | null;
+  renewal_fee: string | null;
+  contract_period: string | null;
+  move_in_date: string | null;
+  conditions: string | null;
+  interior_features: string[] | null;
+  building_features: string[] | null;
+}
+
+// 物件画像
+export type PropertyImageType =
+  | "exterior"
+  | "interior"
+  | "floorplan"
+  | "entrance"
+  | "kitchen"
+  | "bathroom"
+  | "view"
+  | "other";
+
+export interface PropertyImage {
+  id: string;
+  listing_id: string | null;
+  unit_id: string | null;
+  mansion_id: string | null;
+  image_url: string;
+  image_type: PropertyImageType;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
 }
 
 // 監視リスト

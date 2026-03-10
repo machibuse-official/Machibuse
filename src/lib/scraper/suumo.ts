@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { ScrapedListing } from "./types";
+import { ScrapedListing, ScrapedImage } from "./types";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -60,6 +60,32 @@ export function parseSuumoHtml(
     // 最初の駅情報から駅名と徒歩分を抽出
     const stationInfo = parseStationInfo(stationTexts[0] || "");
 
+    // 建物画像の取得
+    const images: ScrapedImage[] = [];
+    let exteriorImageUrl: string | null = null;
+
+    // メイン画像（外観）
+    const mainImg = $item.find(".cassetteitem_object-item img").attr("rel") ||
+      $item.find(".cassetteitem_object-item img").attr("src");
+    if (mainImg && !mainImg.includes("noimage")) {
+      const fullUrl = mainImg.startsWith("http")
+        ? mainImg
+        : new URL(mainImg, baseUrl).toString();
+      exteriorImageUrl = fullUrl;
+      images.push({
+        url: fullUrl,
+        type: "exterior",
+        caption: "外観",
+      });
+    }
+
+    // 設備・特徴情報（建物レベル）
+    const buildingFeatures: string[] = [];
+    $item.find(".cassetteitem_detail-col3 div").each((_i, el) => {
+      const text = $(el).text().trim();
+      if (text) buildingFeatures.push(text);
+    });
+
     // 各部屋情報（tbody 行ごと）
     $item.find(".cassetteitem_other tbody tr").each((_i, row) => {
       const $row = $(row);
@@ -79,6 +105,20 @@ export function parseSuumoHtml(
         .trim();
       const managementFee = parsePrice(feeText);
 
+      // 敷金
+      const depositText = $row
+        .find(".cassetteitem_price--deposit")
+        .text()
+        .trim();
+      const deposit = parsePrice(depositText);
+
+      // 礼金
+      const keyMoneyText = $row
+        .find(".cassetteitem_price--gratuity")
+        .text()
+        .trim();
+      const keyMoney = parsePrice(keyMoneyText);
+
       // 間取り
       const layoutType = $row
         .find(".cassetteitem_madori")
@@ -91,6 +131,21 @@ export function parseSuumoHtml(
         .text()
         .trim();
       const sizeSqm = parseSize(sizeText);
+
+      // 間取り図画像
+      let floorplanImageUrl: string | null = null;
+      const floorplanImg = $row.find(".cassetteitem_other-thumbnail img").attr("rel") ||
+        $row.find(".cassetteitem_other-thumbnail img").attr("src");
+      if (floorplanImg && !floorplanImg.includes("noimage")) {
+        floorplanImageUrl = floorplanImg.startsWith("http")
+          ? floorplanImg
+          : new URL(floorplanImg, baseUrl).toString();
+        images.push({
+          url: floorplanImageUrl,
+          type: "floorplan",
+          caption: "間取り図",
+        });
+      }
 
       // 物件詳細URL
       const detailLink = $row.find("a[href*='/chintai/']").attr("href") || "";
@@ -109,7 +164,15 @@ export function parseSuumoHtml(
           size_sqm: sizeSqm,
           floor,
           rent,
-          management_fee: managementFee,
+          management_fee: managementFee || null,
+          deposit: deposit || null,
+          key_money: keyMoney || null,
+          images: [...images],
+          move_in_date: null,
+          interior_features: [],
+          building_features: buildingFeatures,
+          floorplan_image_url: floorplanImageUrl,
+          exterior_image_url: exteriorImageUrl,
           source_site: "suumo",
           source_url: sourceUrl,
         });
@@ -159,9 +222,9 @@ function parseFloor(text: string): number | null {
 
 /**
  * 価格テキストから円単位の数値を抽出
- * 例: "8.5万円" → 85000, "5000円" → 5000, "-" → null
+ * 例: "8.5万円" → 85000, "5000円" → 5000, "-" → 0
  */
-function parsePrice(text: string): number {
+export function parsePrice(text: string): number {
   if (!text || text === "-" || text === "—") return 0;
 
   // "8.5万円" 形式
@@ -179,8 +242,13 @@ function parsePrice(text: string): number {
  * 面積テキストから数値を抽出
  * 例: "25.5m2" → 25.5
  */
-function parseSize(text: string): number {
+export function parseSize(text: string): number {
   if (!text) return 0;
   const match = text.match(/([\d.]+)/);
   return match ? parseFloat(match[1]) : 0;
 }
+
+/**
+ * 駅情報テキストから駅名と徒歩分を抽出（外部公開用）
+ */
+export { parseStationInfo, parseFloor };

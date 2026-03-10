@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusTag } from "@/components/ui/status-tag";
 import { getDashboardData } from "@/lib/queries";
+import { PreferencePanel } from "@/components/preferences/preference-panel";
 
 export default async function DashboardPage() {
   const {
@@ -15,6 +16,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">ダッシュボード</h1>
+
+      {/* 希望条件パネル */}
+      <PreferencePanel />
 
       {/* サマリカード */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

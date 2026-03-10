@@ -7,8 +7,15 @@ import { StatusTag } from "@/components/ui/status-tag";
 import { AddMansionModal, type MansionFormData } from "@/components/mansion/add-mansion-modal";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import type { MansionWithStats } from "@/types";
+import {
+  type UserPreferences,
+  loadPreferences,
+  hasPreferences,
+  calculateMatchScore,
+  getMatchBadge,
+} from "@/lib/preferences";
 
-type SortKey = "updated_at" | "name" | "active_listings_count" | "walking_minutes";
+type SortKey = "updated_at" | "name" | "active_listings_count" | "walking_minutes" | "match";
 type FilterKey = "all" | "watched" | "active";
 
 const ITEMS_PER_PAGE = 9;
@@ -21,11 +28,40 @@ export default function MansionsPage() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [page, setPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [prefs, setPrefs] = useState<UserPreferences | null>(null);
 
   const fetchMansions = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch("/api/mansions")
+
+    // 希望条件をlocalStorageから読み込み
+    const currentPrefs = loadPreferences();
+    setPrefs(currentPrefs);
+
+    // 希望条件がある場合、デフォルトソートを「おすすめ順」に
+    if (hasPreferences(currentPrefs)) {
+      setSortKey("match");
+    }
+
+    // フィルタ用クエリパラメータを構築
+    const params = new URLSearchParams();
+    if (currentPrefs.layouts.length > 0) {
+      params.set("layouts", currentPrefs.layouts.join(","));
+    }
+    if (currentPrefs.rentMin !== null) {
+      params.set("rent_min", String(currentPrefs.rentMin));
+    }
+    if (currentPrefs.rentMax !== null) {
+      params.set("rent_max", String(currentPrefs.rentMax));
+    }
+    if (currentPrefs.sizeMin !== null) {
+      params.set("size_min", String(currentPrefs.sizeMin));
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `/api/mansions?${queryString}` : "/api/mansions";
+
+    fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("データの取得に失敗しました");
         return res.json();
@@ -41,6 +77,16 @@ export default function MansionsPage() {
     fetchMansions();
   }, [fetchMansions]);
 
+  // スコアキャッシュ
+  const scores = useMemo(() => {
+    if (!prefs || !hasPreferences(prefs)) return new Map<string, number>();
+    const map = new Map<string, number>();
+    for (const m of mansions) {
+      map.set(m.id, calculateMatchScore(m, prefs));
+    }
+    return map;
+  }, [mansions, prefs]);
+
   const filtered = useMemo(() => {
     let result = [...mansions];
 
@@ -49,6 +95,13 @@ export default function MansionsPage() {
 
     result.sort((a, b) => {
       switch (sortKey) {
+        case "match": {
+          const sa = scores.get(a.id) ?? -1;
+          const sb = scores.get(b.id) ?? -1;
+          if (sb !== sa) return sb - sa;
+          // 同スコアの場合は更新日順
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        }
         case "name":
           return a.name.localeCompare(b.name, "ja");
         case "active_listings_count":
@@ -62,7 +115,7 @@ export default function MansionsPage() {
     });
 
     return result;
-  }, [mansions, sortKey, filter]);
+  }, [mansions, sortKey, filter, scores]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -151,6 +204,9 @@ export default function MansionsPage() {
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             className="rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
           >
+            {prefs && hasPreferences(prefs) && (
+              <option value="match">おすすめ順</option>
+            )}
             <option value="updated_at">更新日順</option>
             <option value="name">名前順</option>
             <option value="active_listings_count">募集数順</option>
@@ -164,7 +220,10 @@ export default function MansionsPage() {
       </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {paginated.map((mansion) => (
+        {paginated.map((mansion) => {
+          const score = scores.get(mansion.id) ?? -1;
+          const badge = getMatchBadge(score);
+          return (
           <Link key={mansion.id} href={`/mansions/${mansion.id}`}>
             <Card className="transition-shadow hover:shadow-md">
               <CardContent>
@@ -181,11 +240,18 @@ export default function MansionsPage() {
                       {mansion.total_units}戸
                     </p>
                   </div>
-                  {mansion.is_watched && (
-                    <span className="ml-2 flex-shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                      監視中
-                    </span>
-                  )}
+                  <div className="ml-2 flex flex-shrink-0 flex-col items-end gap-1">
+                    {badge && (
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
+                        {badge.label} {score}%
+                      </span>
+                    )}
+                    {mansion.is_watched && (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        監視中
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -212,7 +278,8 @@ export default function MansionsPage() {
               </CardContent>
             </Card>
           </Link>
-        ))}
+          );
+        })}
       </div>
 
       {totalPages > 1 && (

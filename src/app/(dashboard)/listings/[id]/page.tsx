@@ -3,12 +3,15 @@ import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusTag } from "@/components/ui/status-tag";
 import { RentHistoryChart } from "@/components/chart/rent-history-chart";
+import { ImageGallery } from "@/components/ui/image-gallery";
+import { FeatureTags } from "@/components/ui/feature-tags";
 import {
   getListingById,
   getUnitById,
   getMansionById,
   getListingsByUnitId,
   getUnitsByMansionId,
+  getImagesByListingId,
 } from "@/lib/queries";
 
 export default async function ListingDetailPage({
@@ -22,6 +25,14 @@ export default async function ListingDetailPage({
 
   const unit = await getUnitById(listing.unit_id);
   const mansion = unit ? await getMansionById(unit.mansion_id) : null;
+
+  // 画像取得（テーブルが存在しない場合は空配列）
+  let images: Awaited<ReturnType<typeof getImagesByListingId>> = [];
+  try {
+    images = await getImagesByListingId(listing.id);
+  } catch {
+    // property_imagesテーブルが未作成の場合
+  }
 
   // 同ユニットの過去掲載履歴
   const unitListings = unit ? await getListingsByUnitId(unit.id) : [];
@@ -48,6 +59,29 @@ export default async function ListingDetailPage({
         });
       }
     }
+  }
+
+  // 費用項目のヘルパー
+  const costItems: { label: string; value: string | number | null; format: string }[] = [
+    { label: "賃料", value: listing.current_rent, format: "yen-man" },
+    { label: "管理費", value: listing.management_fee, format: "yen" },
+    { label: "敷金", value: listing.deposit ?? null, format: "yen-man" },
+    { label: "礼金", value: listing.key_money ?? null, format: "yen-man" },
+    { label: "保証金", value: listing.guarantee_deposit ?? null, format: "yen-man" },
+    { label: "更新料", value: listing.renewal_fee ?? null, format: "text" },
+    { label: "契約期間", value: listing.contract_period ?? null, format: "text" },
+    { label: "入居可能日", value: listing.move_in_date ?? null, format: "text" },
+  ].filter((item) => item.value != null);
+
+  function formatCost(value: unknown, format: string): string {
+    if (value == null) return "-";
+    if (format === "yen-man" && typeof value === "number") {
+      return `${(value / 10000).toFixed(1)}万円`;
+    }
+    if (format === "yen" && typeof value === "number") {
+      return `${value.toLocaleString()}円`;
+    }
+    return String(value);
   }
 
   return (
@@ -80,6 +114,17 @@ export default async function ListingDetailPage({
         <span className="text-gray-900">募集詳細</span>
       </div>
 
+      {/* 画像ギャラリー */}
+      {images.length > 0 && (
+        <ImageGallery
+          images={images.map((img) => ({
+            image_url: img.image_url,
+            image_type: img.image_type,
+            caption: img.caption,
+          }))}
+        />
+      )}
+
       {/* 募集情報 */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{mansion?.name}</h1>
@@ -93,39 +138,56 @@ export default async function ListingDetailPage({
         </div>
       </div>
 
-      {/* 賃料情報 */}
-      <Card>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <div>
-              <p className="text-sm text-gray-500">賃料</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {(listing.current_rent / 10000).toFixed(1)}万円
-              </p>
+      {/* 費用詳細カード */}
+      {costItems.length > 0 && (
+        <Card>
+          <CardContent>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              費用詳細
+            </h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {costItems.map((item) => (
+                <div key={item.label}>
+                  <p className="text-sm text-gray-500">{item.label}</p>
+                  <p
+                    className={`text-xl font-bold ${
+                      item.label === "賃料"
+                        ? "text-2xl text-blue-600"
+                        : "text-gray-900"
+                    }`}
+                  >
+                    {formatCost(item.value, item.format)}
+                  </p>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-sm text-gray-500">管理費</p>
-              <p className="text-xl font-bold text-gray-900">
-                {listing.management_fee
-                  ? `${listing.management_fee.toLocaleString()}円`
-                  : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">所在階</p>
-              <p className="text-xl font-bold text-gray-900">
-                {listing.floor || "-"}F
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">間取り</p>
-              <p className="text-xl font-bold text-gray-900">
-                {unit?.layout_type} / {unit?.size_sqm}㎡
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 室内設備タグ */}
+      {listing.interior_features && listing.interior_features.length > 0 && (
+        <Card>
+          <CardContent>
+            <FeatureTags
+              features={listing.interior_features}
+              label="室内設備"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 共用設備タグ */}
+      {listing.building_features && listing.building_features.length > 0 && (
+        <Card>
+          <CardContent>
+            <FeatureTags
+              features={listing.building_features}
+              label="共用設備"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* 掲載情報 */}
       <Card>
@@ -151,6 +213,14 @@ export default async function ListingDetailPage({
                 <span className="text-gray-500">終了日</span>
                 <span className="font-medium text-gray-900">
                   {new Date(listing.ended_at).toLocaleDateString("ja-JP")}
+                </span>
+              </div>
+            )}
+            {listing.conditions && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">条件</span>
+                <span className="font-medium text-gray-900">
+                  {listing.conditions}
                 </span>
               </div>
             )}

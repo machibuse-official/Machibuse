@@ -4,6 +4,7 @@ import type {
   Unit,
   Listing,
   Notification,
+  PropertyImage,
   MansionWithStats,
   UnitWithStats,
   MansionStatus,
@@ -344,6 +345,50 @@ export async function getListingById(id: string): Promise<Listing | null> {
 
   if (error || !data) return null;
   return data as Listing;
+}
+
+// ─── 物件画像 ──────────────────────────────
+
+export async function getImagesByListingId(
+  listingId: string
+): Promise<PropertyImage[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("property_images")
+    .select("*")
+    .eq("listing_id", listingId)
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) return [];
+  return data as PropertyImage[];
+}
+
+export async function getImagesByMansionId(
+  mansionId: string
+): Promise<PropertyImage[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("property_images")
+    .select("*")
+    .eq("mansion_id", mansionId)
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) return [];
+  return data as PropertyImage[];
+}
+
+export async function getImagesByUnitId(
+  unitId: string
+): Promise<PropertyImage[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("property_images")
+    .select("*")
+    .eq("unit_id", unitId)
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) return [];
+  return data as PropertyImage[];
 }
 
 // ─── 通知 ──────────────────────────────
