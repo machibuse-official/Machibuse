@@ -12,11 +12,36 @@ export default async function DashboardPage() {
     notifications,
   } = await getDashboardData();
 
+  const summaryCards = [
+    {
+      label: "現在募集中",
+      value: totalActiveListings,
+      sub: `${activeMansions.length}棟`,
+    },
+    {
+      label: "監視中",
+      value: watchedMansions.length,
+      sub: "建物",
+    },
+    {
+      label: "未読通知",
+      value: unreadNotifications.length,
+      sub: "件",
+    },
+    {
+      label: "掲載中の建物",
+      value: activeMansions.length,
+      sub: "棟",
+    },
+  ];
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">ダッシュボード</h1>
-        <p className="mt-1 text-sm text-slate-500">
+      <div className="animate-fade-in">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          ダッシュボード
+        </h1>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
           物件トラッキングの概要
         </p>
       </div>
@@ -63,155 +88,148 @@ export default async function DashboardPage() {
 
       {/* サマリカード */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent>
-            <p className="text-sm font-medium text-slate-500">現在募集中</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-slate-900">
-              {totalActiveListings}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">{activeMansions.length}棟</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <p className="text-sm font-medium text-slate-500">監視中</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-slate-900">
-              {watchedMansions.length}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">建物</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <p className="text-sm font-medium text-slate-500">未読通知</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-slate-900">
-              {unreadNotifications.length}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">件</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <p className="text-sm font-medium text-slate-500">掲載中の建物</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-slate-900">
-              {activeMansions.length}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">棟</p>
-          </CardContent>
-        </Card>
+        {summaryCards.map((card, i) => (
+          <div
+            key={card.label}
+            className="animate-fade-in-up"
+            style={{ animationDelay: `${i * 100}ms` }}
+          >
+            <Card className="transition-transform duration-200 hover:scale-[1.02]">
+              <CardContent>
+                <p className="text-sm font-medium text-slate-500">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-3xl font-bold tabular-nums text-slate-900">
+                  {card.value}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">{card.sub}</p>
+              </CardContent>
+            </Card>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* 監視中の建物 */}
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">
-                監視中の建物
-              </h2>
-              <Link
-                href="/watchlist"
-                className="text-sm font-medium text-blue-600 hover:text-blue-800"
-              >
-                すべて見る
-              </Link>
-            </div>
-            <div className="mt-4 space-y-2">
-              {watchedMansions.length === 0 ? (
-                <div className="rounded-lg bg-slate-50 py-8 text-center">
-                  <p className="text-sm text-slate-500">
-                    監視中の建物はまだありません
-                  </p>
-                  <Link
-                    href="/mansions"
-                    className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline"
-                  >
-                    建物一覧から追加
-                  </Link>
-                </div>
-              ) : (
-                watchedMansions.map((mansion) => (
-                  <Link
-                    key={mansion.id}
-                    href={`/mansions/${mansion.id}`}
-                    className="flex items-center justify-between rounded-lg border border-slate-100 p-3 transition-colors hover:bg-slate-50"
-                  >
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {mansion.name}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {mansion.nearest_station} 徒歩
-                        {mansion.walking_minutes}分
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {mansion.active_listings_count > 0 && (
-                        <StatusTag status="active" />
-                      )}
-                      <span className="text-slate-400">&rarr;</span>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div
+          className="animate-fade-in-up"
+          style={{ animationDelay: "500ms" }}
+        >
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  監視中の建物
+                </h2>
+                <Link
+                  href="/watchlist"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  すべて見る
+                </Link>
+              </div>
+              <div className="mt-4 space-y-2">
+                {watchedMansions.length === 0 ? (
+                  <div className="rounded-lg bg-slate-50 py-8 text-center">
+                    <p className="text-sm text-slate-500">
+                      監視中の建物はまだありません
+                    </p>
+                    <Link
+                      href="/mansions"
+                      className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline"
+                    >
+                      建物一覧から追加
+                    </Link>
+                  </div>
+                ) : (
+                  watchedMansions.map((mansion) => (
+                    <Link
+                      key={mansion.id}
+                      href={`/mansions/${mansion.id}`}
+                      className="flex items-center justify-between rounded-lg border border-slate-100 p-3 transition-colors hover:bg-slate-50"
+                    >
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {mansion.name}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {mansion.nearest_station} 徒歩
+                          {mansion.walking_minutes}分
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {mansion.active_listings_count > 0 && (
+                          <StatusTag status="active" />
+                        )}
+                        <span className="text-slate-400">&rarr;</span>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* 新着通知 */}
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">
-                新着通知
-              </h2>
-              <Link
-                href="/notifications"
-                className="text-sm font-medium text-blue-600 hover:text-blue-800"
-              >
-                すべて見る
-              </Link>
-            </div>
-            <div className="mt-4 space-y-2">
-              {notifications.length === 0 ? (
-                <div className="rounded-lg bg-slate-50 py-8 text-center">
-                  <p className="text-sm text-slate-500">
-                    新しい通知はありません
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    空室が見つかると自動でお知らせします
-                  </p>
-                </div>
-              ) : (
-                notifications.map((notification) => (
-                  <Link
-                    key={notification.id}
-                    href={
-                      notification.listing_id
-                        ? `/listings/${notification.listing_id}`
-                        : "#"
-                    }
-                    className={`block rounded-lg border p-3 transition-colors hover:bg-slate-50 ${
-                      !notification.is_read
-                        ? "border-blue-200 bg-blue-50/50"
-                        : "border-slate-100"
-                    }`}
-                  >
-                    <p className="text-sm font-medium text-slate-900">
-                      {notification.title}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-600">
-                      {notification.message}
+        <div
+          className="animate-fade-in-up"
+          style={{ animationDelay: "600ms" }}
+        >
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  新着通知
+                </h2>
+                <Link
+                  href="/notifications"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  すべて見る
+                </Link>
+              </div>
+              <div className="mt-4 space-y-2">
+                {notifications.length === 0 ? (
+                  <div className="rounded-lg bg-slate-50 py-8 text-center">
+                    <p className="text-sm text-slate-500">
+                      新しい通知はありません
                     </p>
                     <p className="mt-1 text-xs text-slate-400">
-                      {new Date(notification.created_at).toLocaleString("ja-JP")}
+                      空室が見つかると自動でお知らせします
                     </p>
-                  </Link>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <Link
+                      key={notification.id}
+                      href={
+                        notification.listing_id
+                          ? `/listings/${notification.listing_id}`
+                          : "#"
+                      }
+                      className={`block rounded-lg border p-3 transition-colors hover:bg-slate-50 ${
+                        !notification.is_read
+                          ? "border-blue-200 bg-blue-50/50"
+                          : "border-slate-100"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-slate-900">
+                        {notification.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-600">
+                        {notification.message}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {new Date(notification.created_at).toLocaleString("ja-JP")}
+                      </p>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

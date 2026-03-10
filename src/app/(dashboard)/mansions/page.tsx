@@ -24,6 +24,31 @@ type FilterKey = "all" | "watched" | "active";
 
 const ITEMS_PER_PAGE = 9;
 
+// 外観画像がない物件用のフォールバック画像
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1515263487990-61b07816b324?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1460317442991-0ec209397118?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1567496898669-ee935f5f647a?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1574362848149-11496d93a7c7?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1448630360428-65456885c650?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=400&fit=crop",
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=400&fit=crop",
+];
+
+function getFallbackImage(id: string): string {
+  // IDの文字コードの合計をもとに画像を決定（同じ建物は常に同じ画像）
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash + id.charCodeAt(i)) % FALLBACK_IMAGES.length;
+  }
+  return FALLBACK_IMAGES[hash];
+}
+
 export default function MansionsPage() {
   const [mansions, setMansions] = useState<MansionWithStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,7 +200,7 @@ export default function MansionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="animate-fade-in flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">建物一覧</h1>
           <p className="mt-0.5 text-sm text-slate-500">{mansions.length}棟の物件を掲載中</p>
@@ -201,9 +226,9 @@ export default function MansionsPage() {
             <button
               key={f.key}
               onClick={() => { setFilter(f.key); setPage(1); }}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
                 filter === f.key
-                  ? "bg-slate-900 text-white"
+                  ? "bg-slate-900 text-white shadow-sm"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -236,87 +261,57 @@ export default function MansionsPage() {
 
       {/* 物件カード */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {paginated.map((mansion) => {
+        {paginated.map((mansion, index) => {
           const score = scores.get(mansion.id) ?? -1;
           const badge = getMatchBadge(score);
           const isWatched = watchedIds.includes(mansion.id);
           return (
             <Link key={mansion.id} href={`/mansions/${mansion.id}`}>
-              <Card className="group relative overflow-hidden transition-all hover:shadow-md">
-                {/* 外観画像 */}
-                {mansion.exterior_image_url ? (
-                  <div className="relative h-40 w-full overflow-hidden bg-slate-100">
-                    <img
-                      src={mansion.exterior_image_url}
-                      alt={mansion.name}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {/* ハートオーバーレイ */}
-                    <button
-                      onClick={(e) => handleToggleWatch(e, mansion.id)}
-                      className="absolute right-2 top-2 z-10 rounded-full bg-white/80 p-1.5 backdrop-blur-sm transition-colors hover:bg-white"
-                      title={isWatched ? "監視解除" : "監視する"}
+              <div
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+              <Card className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/50">
+                {/* 外観画像（フォールバック付き） */}
+                <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+                  <img
+                    src={mansion.exterior_image_url || getFallbackImage(mansion.id)}
+                    alt={mansion.name}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* ハートオーバーレイ */}
+                  <button
+                    onClick={(e) => handleToggleWatch(e, mansion.id)}
+                    className="absolute right-2 top-2 z-10 rounded-full bg-white/80 p-1.5 backdrop-blur-sm transition-colors hover:bg-white"
+                    title={isWatched ? "監視解除" : "監視する"}
+                  >
+                    <svg
+                      className={`h-5 w-5 transition-colors ${
+                        isWatched
+                          ? "fill-red-500 text-red-500"
+                          : "fill-none text-slate-400"
+                      }`}
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
                     >
-                      <svg
-                        className={`h-5 w-5 transition-colors ${
-                          isWatched
-                            ? "fill-red-500 text-red-500"
-                            : "fill-none text-slate-400"
-                        }`}
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                      </svg>
-                    </button>
-                    {/* バッジオーバーレイ */}
-                    <div className="absolute left-2 top-2 flex gap-1.5">
-                      {badge && (
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${badge.className}`}>
-                          {badge.label}
-                        </span>
-                      )}
-                      {mansion.active_listings_count > 0 && (
-                        <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-medium text-white shadow-sm">
-                          {mansion.active_listings_count}件募集中
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative flex h-40 w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                    <svg className="h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                     </svg>
-                    {/* ハート（画像なし時） */}
-                    <button
-                      onClick={(e) => handleToggleWatch(e, mansion.id)}
-                      className="absolute right-2 top-2 z-10 rounded-full bg-white/80 p-1.5 transition-colors hover:bg-white"
-                      title={isWatched ? "監視解除" : "監視する"}
-                    >
-                      <svg
-                        className={`h-5 w-5 transition-colors ${
-                          isWatched
-                            ? "fill-red-500 text-red-500"
-                            : "fill-none text-slate-400"
-                        }`}
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                      </svg>
-                    </button>
-                    <div className="absolute left-2 top-2 flex gap-1.5">
-                      {badge && (
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${badge.className}`}>
-                          {badge.label}
-                        </span>
-                      )}
-                    </div>
+                  </button>
+                  {/* バッジオーバーレイ */}
+                  <div className="absolute left-2 top-2 flex gap-1.5">
+                    {badge && (
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${badge.className}`}>
+                        {badge.label}
+                      </span>
+                    )}
+                    {mansion.active_listings_count > 0 && (
+                      <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-medium text-white shadow-sm">
+                        {mansion.active_listings_count}件募集中
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
 
                 <CardContent>
                   <div className="mt-1">
@@ -335,15 +330,6 @@ export default function MansionsPage() {
                     </p>
                   </div>
 
-                  {/* ステータスタグ（画像がない場合のみ表示） */}
-                  {!mansion.exterior_image_url && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {mansion.active_listings_count > 0 && <StatusTag status="active" />}
-                      {mansion.active_listings_count === 0 && mansion.last_listing_date && <StatusTag status="past" />}
-                      {!mansion.last_listing_date && <StatusTag status="unknown" />}
-                    </div>
-                  )}
-
                   <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-center">
                     <div>
                       <p className="text-lg font-bold tabular-nums text-slate-900">{mansion.active_listings_count}</p>
@@ -360,6 +346,7 @@ export default function MansionsPage() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             </Link>
           );
         })}
@@ -371,7 +358,7 @@ export default function MansionsPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             前へ
           </button>
@@ -379,10 +366,10 @@ export default function MansionsPage() {
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
                 page === p
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
               }`}
             >
               {p}
@@ -391,7 +378,7 @@ export default function MansionsPage() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             次へ
           </button>

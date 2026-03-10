@@ -32,14 +32,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       {/* サイドバー */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[260px] flex-shrink-0 bg-[#0f172a] transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-[260px] flex-shrink-0 bg-gradient-to-b from-[#0f172a] to-[#0a1120] transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* ロゴエリア */}
         <div className="flex h-16 items-center justify-between px-6">
           <Link href="/dashboard" className="flex flex-col">
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-lg font-bold tracking-widest text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-lg font-bold tracking-widest text-transparent drop-shadow-[0_0_12px_rgba(59,130,246,0.3)]">
               MACHIBUSE
             </span>
             <span className="text-[11px] font-medium tracking-wider text-slate-500">
@@ -58,11 +58,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </div>
 
         {/* ディバイダー */}
-        <div className="mx-4 border-t border-white/[0.06]" />
+        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
         {/* ナビゲーション */}
         <nav className="flex flex-col gap-0.5 p-3 pt-4">
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -70,12 +70,16 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
+                style={{ animationDelay: `${index * 50}ms` }}
+                className={`animate-slide-in group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
                   isActive
-                    ? "border-l-2 border-blue-400 bg-white/[0.12] text-white"
-                    : "border-l-2 border-transparent text-slate-400 hover:bg-white/[0.07] hover:text-slate-200"
+                    ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+                    : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
                 }`}
               >
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-gradient-to-b from-blue-400 to-cyan-400 shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
+                )}
                 <item.icon className={`h-[18px] w-[18px] transition-colors duration-200 ${isActive ? "text-blue-400" : "text-slate-500 group-hover:text-slate-300"}`} />
                 {item.label}
               </Link>
@@ -85,7 +89,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
         {/* ボトムセクション */}
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="mx-1 border-t border-white/[0.06] pb-3 pt-3">
+          <div className="mx-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-3" />
+          <div className="mx-1 pt-3">
             <span className="text-[10px] font-medium tracking-wider text-slate-600">
               v1.5
             </span>
