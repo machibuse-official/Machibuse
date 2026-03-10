@@ -9,7 +9,6 @@ import { PropertyMap } from "@/components/ui/property-map";
 import { AddUnitModal, type UnitFormData } from "@/components/mansion/add-unit-modal";
 import { ImageSlideshow } from "@/components/ui/image-slideshow";
 import { isWatched as checkWatched, toggleWatchlist } from "@/lib/watchlist";
-import { getMansionImages } from "@/data/mansion-images";
 import type { MansionWithStats, UnitWithStats, Listing } from "@/types";
 
 interface MansionDetailClientProps {
@@ -26,9 +25,51 @@ export function MansionDetailClient({
   const [units, setUnits] = useState(initialUnits);
   const [showAddUnit, setShowAddUnit] = useState(false);
   const [watched, setWatched] = useState(false);
+  const [dbImages, setDbImages] = useState<{ url: string; type: string; caption: string | null }[]>([]);
+  const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
     setWatched(checkWatched(mansion.id));
+    // DB画像を取得
+    fetch(`/api/mansions/${mansion.id}/images`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDbImages(data.map((img: { image_url: string; image_type: string; caption: string | null }) => ({
+            url: img.image_url,
+            type: img.image_type,
+            caption: img.caption,
+          })));
+          setImageLoading(false);
+        } else {
+          // 画像がない → バックグラウンドで自動取得をトリガー
+          setImageLoading(false);
+          fetch("/api/images/auto-track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mansionId: mansion.id }),
+          })
+            .then((res) => res.ok ? res.json() : null)
+            .then((result) => {
+              if (result && result.saved > 0) {
+                // 取得できたら再読み込み
+                return fetch(`/api/mansions/${mansion.id}/images`)
+                  .then((res) => res.ok ? res.json() : [])
+                  .then((imgs) => {
+                    if (Array.isArray(imgs) && imgs.length > 0) {
+                      setDbImages(imgs.map((img: { image_url: string; image_type: string; caption: string | null }) => ({
+                        url: img.image_url,
+                        type: img.image_type,
+                        caption: img.caption,
+                      })));
+                    }
+                  });
+              }
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => setImageLoading(false));
   }, [mansion.id]);
 
   async function handleAddUnit(data: UnitFormData) {
@@ -124,13 +165,26 @@ export function MansionDetailClient({
 
       {/* 建物画像 */}
       {(() => {
-        const staticImages = getMansionImages(mansion.id);
-        const displayImages = staticImages.length > 0
-          ? staticImages
+        const displayImages = dbImages.length > 0
+          ? dbImages
           : mansion.exterior_image_url
             ? [{ url: mansion.exterior_image_url, type: "exterior", caption: "外観" }]
             : [];
-        if (displayImages.length === 0) return null;
+        if (imageLoading) {
+          return <div className="h-72 animate-pulse rounded-lg bg-gray-200" />;
+        }
+        if (displayImages.length === 0) {
+          return (
+            <div className="flex h-48 items-center justify-center rounded-lg bg-gray-100">
+              <div className="text-center">
+                <svg className="mx-auto h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
+                </svg>
+                <p className="mt-2 text-xs text-gray-400">画像を自動取得中...</p>
+              </div>
+            </div>
+          );
+        }
         return (
           <div className="overflow-hidden rounded-lg h-72">
             <ImageSlideshow

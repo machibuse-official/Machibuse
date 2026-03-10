@@ -15,12 +15,12 @@ export default function DashboardLayout({
   const isMansions = pathname === "/mansions";
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="flex h-screen bg-[#f8fafc]">
       {/* モバイルで物件ページの場合、サイドバー非表示 */}
       <div className={isMansions ? "hidden lg:contents" : "contents"}>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       </div>
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-h-0">
         {/* モバイルで物件ページの場合、ヘッダー非表示 */}
         <div className={isMansions ? "hidden lg:block" : ""}>
           <Header onMenuToggle={() => setSidebarOpen(true)} />

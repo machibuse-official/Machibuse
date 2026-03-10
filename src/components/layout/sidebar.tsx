@@ -7,6 +7,8 @@ const navItems = [
   { href: "/dashboard", label: "ダッシュボード", icon: HomeIcon },
   { href: "/mansions", label: "物件リスト", icon: BuildingIcon },
   { href: "/watchlist", label: "ウォッチリスト", icon: EyeIcon },
+  { href: "/favorites", label: "お気に入り", icon: HeartIcon },
+  { href: "/compare", label: "物件比較", icon: CompareIcon },
   { href: "/notifications", label: "通知", icon: BellIcon },
   { href: "/settings/notifications", label: "設定", icon: SettingsIcon },
   { href: "/admin", label: "データ管理", icon: DatabaseIcon },
@@ -144,6 +146,22 @@ function DatabaseIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+    </svg>
+  );
+}
+
+function HeartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+    </svg>
+  );
+}
+
+function CompareIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
     </svg>
   );
 }

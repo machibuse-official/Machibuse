@@ -1,10 +1,12 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { autoTrackImagesForMansion, deepScrapeFromSourceUrl } from "@/lib/image-tracker";
 import { ScrapedListing } from "./types";
 
 interface ProcessResult {
   created: number;
   updated: number;
   skipped: number;
+  images_fetched: number;
 }
 
 /**
@@ -21,6 +23,10 @@ export async function processScrapedListings(
   let created = 0;
   let updated = 0;
   let skipped = 0;
+  let imagesFetched = 0;
+
+  // 画像追跡が必要なmansion_idを集める
+  const mansionIdsToTrack = new Set<string>();
 
   for (const item of listings) {
     try {
@@ -33,9 +39,14 @@ export async function processScrapedListings(
       // 3. 重複チェック & Listing作成
       const result = await findOrCreateListing(supabase, unitId, item);
 
-      if (result === "created") created++;
-      else if (result === "updated") updated++;
-      else skipped++;
+      if (result === "created") {
+        created++;
+        mansionIdsToTrack.add(mansionId);
+      } else if (result === "updated") {
+        updated++;
+      } else {
+        skipped++;
+      }
     } catch (error) {
       console.error(
         `[scraper] 物件処理エラー: ${item.mansion_name}`,
@@ -45,7 +56,18 @@ export async function processScrapedListings(
     }
   }
 
-  return { created, updated, skipped };
+  // 新規リスティングがあった建物の画像を自動取得
+  for (const mansionId of mansionIdsToTrack) {
+    try {
+      const imgResult = await autoTrackImagesForMansion(mansionId);
+      imagesFetched += imgResult.saved;
+      console.log(`[image-tracker] ${mansionId}: ${imgResult.saved}枚取得 (${imgResult.source})`);
+    } catch (error) {
+      console.error(`[image-tracker] ${mansionId} 画像取得エラー:`, error);
+    }
+  }
+
+  return { created, updated, skipped, images_fetched: imagesFetched };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

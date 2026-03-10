@@ -5,11 +5,10 @@ import {
   scrapeLIFULLPage,
   scrapeAtHomePage,
   scrapeChintaiPage,
-  processScrapedListings,
 } from "@/lib/scraper";
+import { processScrapedListingsWithNotifications } from "@/lib/scraper/process";
 import { ScrapedListing } from "@/lib/scraper/types";
 
-// 各サイトの検索URLテンプレート（建物名をエンコードして末尾に付与）
 const SEARCH_SITES = [
   {
     name: "suumo",
@@ -35,32 +34,24 @@ const SEARCH_SITES = [
 
 /**
  * GET /api/scrape/cron
- * Vercel Cronから6時間ごとに呼ばれる想定
- * 監視中の建物名でSUUMO検索URLを生成してスクレイプ実行
+ * Vercel Cronから6時間ごとに呼ばれる
+ * 監視中の建物名でスクレイプ実行 + 通知自動生成 + メール送信
  */
 export async function GET(request: NextRequest) {
-  // CRON_SECRET によるセキュリティチェック
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     console.error("[cron] CRON_SECRET が設定されていません");
-    return NextResponse.json(
-      { error: "サーバー設定エラー" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "サーバー設定エラー" }, { status: 500 });
   }
 
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json(
-      { error: "認証に失敗しました" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "認証に失敗しました" }, { status: 401 });
   }
 
   try {
     const supabase = await createServerSupabaseClient();
 
-    // アクティブな監視リストから対象建物を取得
     const { data: watchlists, error: watchError } = await supabase
       .from("user_watchlists")
       .select("target_mansion_id, mansions(name)")
@@ -78,7 +69,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 重複する建物名を除外
     const mansionNames = [
       ...new Set(
         watchlists
@@ -96,17 +86,17 @@ export async function GET(request: NextRequest) {
       created: number;
       updated: number;
       skipped: number;
+      notifications_created: number;
+      emails_sent: number;
       error?: string;
     }> = [];
 
     for (const name of mansionNames) {
       for (const site of SEARCH_SITES) {
         try {
-          // 建物名で検索URLを生成
           const searchUrl = site.baseUrl + encodeURIComponent(name);
-
           const listings: ScrapedListing[] = await site.scraper(searchUrl);
-          const result = await processScrapedListings(listings);
+          const result = await processScrapedListingsWithNotifications(listings);
 
           results.push({
             mansion_name: name,
@@ -124,33 +114,36 @@ export async function GET(request: NextRequest) {
             created: 0,
             updated: 0,
             skipped: 0,
-            error:
-              error instanceof Error ? error.message : "不明なエラー",
+            notifications_created: 0,
+            emails_sent: 0,
+            error: error instanceof Error ? error.message : "不明なエラー",
           });
         }
 
-        // レートリミット対策: リクエスト間に1秒待機
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
     const totalCreated = results.reduce((sum, r) => sum + r.created, 0);
     const totalUpdated = results.reduce((sum, r) => sum + r.updated, 0);
+    const totalNotifications = results.reduce((sum, r) => sum + r.notifications_created, 0);
+    const totalEmails = results.reduce((sum, r) => sum + r.emails_sent, 0);
 
     return NextResponse.json({
       message: `${mansionNames.length}件の建物を${SEARCH_SITES.length}サイトからスクレイプしました`,
       total_created: totalCreated,
       total_updated: totalUpdated,
+      total_notifications: totalNotifications,
+      total_emails: totalEmails,
       results,
     });
   } catch (error) {
     console.error("[cron] Cronジョブエラー:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Cronジョブ中にエラーが発生しました",
+        error: error instanceof Error
+          ? error.message
+          : "Cronジョブ中にエラーが発生しました",
       },
       { status: 500 }
     );

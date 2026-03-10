@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from "react";
 import Link from "next/link";
 import { AddMansionModal, type MansionFormData } from "@/components/mansion/add-mansion-modal";
+import { CompareModal } from "@/components/mansion/compare-modal";
 import { ImageSlideshow } from "@/components/ui/image-slideshow";
 import type { MansionWithStats } from "@/types";
+
+const MansionMap = lazy(() => import("@/components/ui/mansion-map").then((m) => ({ default: m.MansionMap })));
 import {
   type UserPreferences,
   loadPreferences,
@@ -24,7 +27,7 @@ import {
   getWatchedMansionIds,
   toggleWatchlist,
 } from "@/lib/watchlist";
-import { getMansionImages } from "@/data/mansion-images";
+// DB画像優先（APIが images[] を返す）、フォールバックは exterior_image_url
 
 type SortKey = "updated_at" | "name" | "active_listings_count" | "walking_minutes" | "match";
 type FilterKey = "all" | "watched" | "active";
@@ -71,6 +74,13 @@ export default function MansionsPage() {
   const [mobileView, setMobileView] = useState<ViewMode>("search");
   const [mobileFilterTab, setMobileFilterTab] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  // フリーテキスト検索
+  const [searchQuery, setSearchQuery] = useState("");
+  // 比較機能
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+  // 地図/リスト切り替え
+  const [viewType, setViewType] = useState<"list" | "map">("list");
 
   const fetchMansions = useCallback(() => {
     setLoading(true);
@@ -101,7 +111,24 @@ export default function MansionsPage() {
         return res.json();
       })
       .then((data) => {
-        if (Array.isArray(data)) setMansions(data);
+        if (Array.isArray(data)) {
+          setMansions(data);
+          // 画像のない建物を検出してバックグラウンドで自動取得
+          const noImageIds = data
+            .filter((m: MansionWithStats) => (!m.images || m.images.length === 0) && !m.exterior_image_url)
+            .slice(0, 5)
+            .map((m: MansionWithStats) => m.id);
+          if (noImageIds.length > 0) {
+            // 1件ずつバックグラウンドで取得
+            noImageIds.forEach((id: string) => {
+              fetch("/api/images/auto-track", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mansionId: id }),
+              }).catch(() => {});
+            });
+          }
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -172,6 +199,17 @@ export default function MansionsPage() {
 
   const filtered = useMemo(() => {
     let result = [...mansions];
+    // フリーテキスト検索
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.address.toLowerCase().includes(q) ||
+        m.nearest_station.toLowerCase().includes(q) ||
+        (m.second_nearest_station && m.second_nearest_station.toLowerCase().includes(q)) ||
+        (m.brand_type && m.brand_type.toLowerCase().includes(q))
+      );
+    }
     if (filter === "watched") result = result.filter((m) => watchedIds.includes(m.id));
     if (filter === "active") result = result.filter((m) => m.active_listings_count > 0);
     result.sort((a, b) => {
@@ -199,6 +237,18 @@ export default function MansionsPage() {
     e.stopPropagation();
     const nowWatched = toggleWatchlist(mansionId);
     setWatchedIds(nowWatched ? [...watchedIds, mansionId] : watchedIds.filter((id) => id !== mansionId));
+  }
+
+  function toggleCompare(e: React.MouseEvent, mansionId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    setCompareIds((prev) =>
+      prev.includes(mansionId)
+        ? prev.filter((id) => id !== mansionId)
+        : prev.length < 4
+          ? [...prev, mansionId]
+          : prev
+    );
   }
 
   async function handleAddMansion(data: MansionFormData) {
@@ -473,6 +523,29 @@ export default function MansionsPage() {
         </div>
       </div>
 
+      {/* テキスト検索バー */}
+      <div className="px-3 pt-2">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-[#8e8e93]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+            placeholder="建物名・住所・駅名で検索"
+            className="w-full rounded-[10px] bg-[#e5e5ea]/60 py-[9px] pl-9 pr-8 text-[15px] text-[#000] placeholder-[#8e8e93] outline-none focus:bg-white focus:ring-2 focus:ring-[#007aff]/30"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[#8e8e93] p-0.5">
+              <svg className="h-[12px] w-[12px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* 件数 + フィルタ */}
       <div className="px-4 pt-3">
         <p className="text-[32px] font-bold tracking-tight text-[#000] tabular-nums leading-none">
@@ -493,7 +566,15 @@ export default function MansionsPage() {
               {f.label}
             </button>
           ))}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex rounded-full border border-[#e5e5ea] overflow-hidden">
+              <button onClick={() => setViewType("list")} className={`px-2.5 py-[4px] text-[11px] font-medium ${viewType === "list" ? "bg-[#007aff] text-white" : "bg-white text-[#8e8e93]"}`}>
+                リスト
+              </button>
+              <button onClick={() => setViewType("map")} className={`px-2.5 py-[4px] text-[11px] font-medium ${viewType === "map" ? "bg-[#007aff] text-white" : "bg-white text-[#8e8e93]"}`}>
+                地図
+              </button>
+            </div>
             <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}
               className="appearance-none bg-transparent text-[13px] text-[#007aff] outline-none pr-1">
               {prefs && hasPreferences(prefs) && <option value="match">おすすめ</option>}
@@ -505,9 +586,19 @@ export default function MansionsPage() {
         </div>
       </div>
 
-      {/* 物件リスト */}
+      {/* 物件リスト / 地図表示 */}
       <div className="flex-1 px-3 pt-3 pb-[120px]">
-        {loading ? (
+        {viewType === "map" ? (
+          <div className="rounded-[16px] bg-white overflow-hidden shadow-sm" style={{ height: "60vh" }}>
+            <Suspense fallback={<div className="flex items-center justify-center h-full text-[#8e8e93]">地図を読み込み中...</div>}>
+              <MansionMap
+                mansions={filtered.filter((m) => m.latitude && m.longitude)}
+                watchedIds={watchedIds}
+                onMansionClick={(id) => window.location.href = `/mansions/${id}`}
+              />
+            </Suspense>
+          </div>
+        ) : loading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-[200px] animate-pulse rounded-[16px] bg-white" />
@@ -528,9 +619,11 @@ export default function MansionsPage() {
               const score = scores.get(mansion.id) ?? -1;
               const badge = getMatchBadge(score);
               const isWatched = watchedIds.includes(mansion.id);
-              const dbImages = mansion.images || [];
-              const staticImages = getMansionImages(mansion.id);
-              const displayImages = dbImages.length > 0 ? dbImages : staticImages.length > 0 ? staticImages : mansion.exterior_image_url ? [{ url: mansion.exterior_image_url, type: "exterior", caption: "外観" }] : [];
+              const displayImages = (mansion.images && mansion.images.length > 0)
+                ? mansion.images
+                : mansion.exterior_image_url
+                  ? [{ url: mansion.exterior_image_url, type: "exterior", caption: "外観" }]
+                  : [];
 
               return (
                 <div key={mansion.id} className="overflow-hidden rounded-[16px] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
@@ -614,9 +707,20 @@ export default function MansionsPage() {
                     </div>
                   </Link>
 
-                  {/* 物件名 */}
-                  <div className="border-t border-[#f2f2f7] px-[14px] py-[8px]">
+                  {/* 物件名 + 比較 */}
+                  <div className="border-t border-[#f2f2f7] px-[14px] py-[8px] flex items-center justify-between">
                     <p className="truncate text-[13px] font-bold text-[#007aff]">{mansion.name}</p>
+                    <button onClick={(e) => toggleCompare(e, mansion.id)}
+                      className={`shrink-0 ml-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border transition-colors ${
+                        compareIds.includes(mansion.id)
+                          ? "border-[#007aff] bg-[#007aff]/10 text-[#007aff]"
+                          : "border-[#e5e5ea] text-[#8e8e93]"
+                      }`}>
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M3 12h18M3 18h18" />
+                      </svg>
+                      比較
+                    </button>
                   </div>
                 </div>
               );
@@ -839,21 +943,51 @@ export default function MansionsPage() {
       </div>
 
       {/* === デスクトップ === */}
-      <div className="hidden lg:flex -m-8 min-h-full bg-white">
-        <aside className="w-[260px] shrink-0 border-r border-[#e0e0e0] bg-white overflow-y-auto max-h-[calc(100vh-56px)] sticky top-0">
+      <div className="hidden lg:flex -m-8 h-[calc(100vh-56px)] bg-white">
+        <aside className="w-[260px] shrink-0 border-r border-[#e0e0e0] bg-white overflow-y-auto">
           {desktopSidebar}
         </aside>
-        <div className="flex-1 min-w-0 bg-[#f5f5f5]">
+        <div className="flex-1 min-w-0 bg-[#f5f5f5] overflow-y-auto">
           {/* デスクトップヘッダー */}
           <div className="sticky top-0 z-10 bg-white border-b border-[#ddd]">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#eee]">
-              <div className="flex items-center gap-2">
-                <h1 className="text-[15px] font-bold text-[#333]">賃貸物件一覧</h1>
-                <span className="text-xs text-[#999]">{filtered.length}件</span>
+              <div className="flex items-center gap-3">
+                <h1 className="text-[15px] font-bold text-[#333] shrink-0">賃貸物件一覧</h1>
+                <div className="relative flex-1 max-w-[320px]">
+                  <svg className="absolute left-2.5 top-1/2 h-[14px] w-[14px] -translate-y-1/2 text-[#999]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                    placeholder="建物名・住所・駅名で検索"
+                    className="w-full rounded-[4px] border border-[#ccc] bg-white py-[5px] pl-8 pr-6 text-[12px] text-[#333] placeholder-[#999] outline-none focus:border-[#0066cc]"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#999] hover:text-[#333]">
+                      <svg className="h-[12px] w-[12px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <span className="text-xs text-[#999] shrink-0">{filtered.length}件</span>
               </div>
-              <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1 rounded bg-[#0066cc] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0055aa]">
-                <span className="text-sm leading-none">+</span> 建物を登録
-              </button>
+              <div className="flex items-center gap-2">
+                {/* 地図/リスト切り替え */}
+                <div className="flex rounded-sm border border-[#ccc] overflow-hidden">
+                  <button onClick={() => setViewType("list")} className={`px-2.5 py-1 text-[11px] font-medium ${viewType === "list" ? "bg-[#0066cc] text-white" : "bg-white text-[#666]"}`}>
+                    リスト
+                  </button>
+                  <button onClick={() => setViewType("map")} className={`px-2.5 py-1 text-[11px] font-medium ${viewType === "map" ? "bg-[#0066cc] text-white" : "bg-white text-[#666]"}`}>
+                    地図
+                  </button>
+                </div>
+                <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1 rounded bg-[#0066cc] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0055aa]">
+                  <span className="text-sm leading-none">+</span> 建物を登録
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-[#f9f9f9]">
               <div className="flex items-center gap-1">
@@ -874,9 +1008,19 @@ export default function MansionsPage() {
           <div className="px-4 py-2 text-[11px] text-[#666] border-b border-[#eee] bg-white">
             <strong className="text-[#333]">{filtered.length}件</strong>中 {Math.min((page - 1) * ITEMS_PER_PAGE + 1, filtered.length)}〜{Math.min(page * ITEMS_PER_PAGE, filtered.length)}件を表示
           </div>
-          {/* 物件リスト */}
+          {/* 物件リスト / 地図表示 */}
           <div className="px-4 py-3">
-            {loading ? (
+            {viewType === "map" ? (
+              <div className="rounded-lg border border-[#ddd] bg-white overflow-hidden" style={{ height: "calc(100vh - 160px)" }}>
+                <Suspense fallback={<div className="flex items-center justify-center h-full text-[#999]">地図を読み込み中...</div>}>
+                  <MansionMap
+                    mansions={filtered.filter((m) => m.latitude && m.longitude)}
+                    watchedIds={watchedIds}
+                    onMansionClick={(id) => window.location.href = `/mansions/${id}`}
+                  />
+                </Suspense>
+              </div>
+            ) : loading ? (
               <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[160px] animate-pulse rounded bg-white border border-[#ddd]" />)}</div>
             ) : filtered.length === 0 ? (
               <div className="rounded border border-[#ddd] bg-white px-6 py-16 text-center"><p className="text-sm text-[#666]">条件に一致する物件が見つかりませんでした</p></div>
@@ -886,9 +1030,11 @@ export default function MansionsPage() {
                   const score = scores.get(mansion.id) ?? -1;
                   const badge = getMatchBadge(score);
                   const isWatched = watchedIds.includes(mansion.id);
-                  const dbImages = mansion.images || [];
-                  const staticImages = getMansionImages(mansion.id);
-                  const displayImages = dbImages.length > 0 ? dbImages : staticImages.length > 0 ? staticImages : mansion.exterior_image_url ? [{ url: mansion.exterior_image_url, type: "exterior", caption: "外観" }] : [];
+                  const displayImages = (mansion.images && mansion.images.length > 0)
+                    ? mansion.images
+                    : mansion.exterior_image_url
+                      ? [{ url: mansion.exterior_image_url, type: "exterior", caption: "外観" }]
+                      : [];
                   return (
                     <div key={mansion.id} className="rounded-[8px] border border-[#e8e8e8] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden hover:shadow-[0_2px_12px_rgba(0,0,0,0.1)] transition-shadow">
                       <Link href={`/mansions/${mansion.id}`} className="block">
@@ -930,7 +1076,20 @@ export default function MansionsPage() {
                           <span className="text-[11px] font-bold text-[#0066cc]">詳細を見る &gt;</span>
                         </div>
                       </Link>
-                      <div className="border-t border-[#eee] bg-[#fafafa] px-3 py-1.5"><p className="truncate text-[13px] font-bold text-[#0066cc]">{mansion.name}</p></div>
+                      <div className="border-t border-[#eee] bg-[#fafafa] px-3 py-1.5 flex items-center justify-between">
+                        <p className="truncate text-[13px] font-bold text-[#0066cc]">{mansion.name}</p>
+                        <button onClick={(e) => toggleCompare(e, mansion.id)}
+                          className={`shrink-0 ml-2 flex items-center gap-1 rounded-sm px-2 py-0.5 text-[10px] font-medium border transition-colors ${
+                            compareIds.includes(mansion.id)
+                              ? "border-[#0066cc] bg-[#0066cc]/10 text-[#0066cc]"
+                              : "border-[#ccc] text-[#999]"
+                          }`}>
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M3 12h18M3 18h18" />
+                          </svg>
+                          比較
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -948,6 +1107,36 @@ export default function MansionsPage() {
       </div>
 
       <AddMansionModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSubmit={handleAddMansion} />
+
+      {/* 比較フローティングバー */}
+      {compareIds.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 z-[150] -translate-x-1/2 flex items-center gap-3 rounded-full bg-[#333] px-5 py-3 shadow-2xl lg:bottom-6">
+          <span className="text-[13px] font-medium text-white">{compareIds.length}件選択中</span>
+          <button
+            onClick={() => setShowCompare(true)}
+            className="rounded-full bg-[#007aff] px-4 py-1.5 text-[13px] font-bold text-white active:bg-[#0056d6]"
+          >
+            比較する
+          </button>
+          <button
+            onClick={() => setCompareIds([])}
+            className="rounded-full bg-white/20 px-3 py-1.5 text-[12px] text-white"
+          >
+            クリア
+          </button>
+        </div>
+      )}
+
+      {/* 比較モーダル */}
+      <CompareModal
+        isOpen={showCompare}
+        onClose={() => setShowCompare(false)}
+        mansions={mansions.filter((m) => compareIds.includes(m.id))}
+        onRemove={(id) => {
+          setCompareIds((prev) => prev.filter((cid) => cid !== id));
+          if (compareIds.length <= 1) setShowCompare(false);
+        }}
+      />
     </>
   );
 }

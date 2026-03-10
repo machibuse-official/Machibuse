@@ -5,13 +5,49 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusTag } from "@/components/ui/status-tag";
 import { ListSkeleton } from "@/components/ui/skeleton";
+import { WatchConditionsModal } from "@/components/watch/watch-conditions-modal";
 import type { MansionWithStats } from "@/types";
 import {
   getWatchedMansionIds,
+  getWatchEntry,
   addToWatchlist,
   removeFromWatchlist,
+  type WatchConditions,
+  DEFAULT_CONDITIONS,
 } from "@/lib/watchlist";
 import { getMemo, saveMemo } from "@/lib/memo";
+
+function ConditionsSummary({ conditions }: { conditions: WatchConditions }) {
+  const parts: string[] = [];
+  if (conditions.rentMin || conditions.rentMax) {
+    const min = conditions.rentMin ? `${conditions.rentMin}万` : "";
+    const max = conditions.rentMax ? `${conditions.rentMax}万` : "";
+    parts.push(`賃料: ${min}${min && max ? "〜" : ""}${max}`);
+  }
+  if (conditions.layouts.length > 0) {
+    parts.push(`間取り: ${conditions.layouts.join(", ")}`);
+  }
+  if (conditions.sizeMin) {
+    parts.push(`${conditions.sizeMin}㎡以上`);
+  }
+  if (conditions.walkingMax) {
+    parts.push(`徒歩${conditions.walkingMax}分以内`);
+  }
+  if (parts.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {parts.map((part) => (
+        <span
+          key={part}
+          className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+        >
+          {part}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function WatchlistPage() {
   const [mansions, setMansions] = useState<MansionWithStats[]>([]);
@@ -21,9 +57,20 @@ export default function WatchlistPage() {
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
   const [memoText, setMemoText] = useState("");
   const [memos, setMemos] = useState<Record<string, string>>({});
+  const [conditionsModal, setConditionsModal] = useState<string | null>(null);
+  const [watchConditions, setWatchConditions] = useState<Record<string, WatchConditions>>({});
 
   useEffect(() => {
     setWatchedIds(getWatchedMansionIds());
+
+    // 条件読み込み
+    const ids = getWatchedMansionIds();
+    const condMap: Record<string, WatchConditions> = {};
+    for (const id of ids) {
+      const entry = getWatchEntry(id);
+      if (entry) condMap[id] = entry.conditions;
+    }
+    setWatchConditions(condMap);
 
     fetch("/api/mansions")
       .then((res) => {
@@ -33,7 +80,6 @@ export default function WatchlistPage() {
       .then((data) => {
         if (Array.isArray(data)) {
           setMansions(data);
-          // メモ読み込み
           const memoMap: Record<string, string> = {};
           for (const m of data) {
             const memo = getMemo(m.id);
@@ -74,6 +120,10 @@ export default function WatchlistPage() {
     });
     setEditingMemo(null);
     setMemoText("");
+  };
+
+  const handleConditionsSave = (mansionId: string, conditions: WatchConditions) => {
+    setWatchConditions((prev) => ({ ...prev, [mansionId]: conditions }));
   };
 
   const unwatchedMansions = useMemo(
@@ -127,23 +177,9 @@ export default function WatchlistPage() {
           <CardContent>
             <div className="py-12 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                <svg
-                  className="h-8 w-8 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
+                <svg className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <p className="text-lg font-medium text-slate-500">
@@ -171,16 +207,10 @@ export default function WatchlistPage() {
             >
               <CardContent>
                 <div className="flex items-start justify-between gap-3">
-                  <Link
-                    href={`/mansions/${mansion.id}`}
-                    className="min-w-0 flex-1"
-                  >
-                    <h3 className="font-semibold text-slate-900">
-                      {mansion.name}
-                    </h3>
+                  <Link href={`/mansions/${mansion.id}`} className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-slate-900">{mansion.name}</h3>
                     <p className="mt-0.5 text-sm text-slate-500">
-                      {mansion.nearest_station} 徒歩{mansion.walking_minutes}分
-                      / {mansion.address}
+                      {mansion.nearest_station} 徒歩{mansion.walking_minutes}分 / {mansion.address}
                     </p>
                     <div className="mt-2 flex items-center gap-3">
                       {mansion.active_listings_count > 0 ? (
@@ -197,10 +227,15 @@ export default function WatchlistPage() {
                   </Link>
                   <div className="flex flex-shrink-0 gap-2">
                     <button
+                      onClick={() => setConditionsModal(mansion.id)}
+                      className="rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50/80"
+                      title="監視条件を設定"
+                    >
+                      条件設定
+                    </button>
+                    <button
                       onClick={() => {
-                        setEditingMemo(
-                          editingMemo === mansion.id ? null : mansion.id
-                        );
+                        setEditingMemo(editingMemo === mansion.id ? null : mansion.id);
                         setMemoText(memos[mansion.id] || "");
                       }}
                       className="rounded-lg border border-slate-200/60 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
@@ -216,6 +251,11 @@ export default function WatchlistPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* 条件サマリー */}
+                {watchConditions[mansion.id] && (
+                  <ConditionsSummary conditions={watchConditions[mansion.id]} />
+                )}
 
                 {/* メモ表示 */}
                 {memos[mansion.id] && editingMemo !== mansion.id && (
@@ -274,16 +314,10 @@ export default function WatchlistPage() {
               >
                 <CardContent>
                   <div className="flex items-center justify-between">
-                    <Link
-                      href={`/mansions/${mansion.id}`}
-                      className="min-w-0 flex-1"
-                    >
-                      <h3 className="font-semibold text-slate-900">
-                        {mansion.name}
-                      </h3>
+                    <Link href={`/mansions/${mansion.id}`} className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-slate-900">{mansion.name}</h3>
                       <p className="mt-0.5 text-sm text-slate-500">
-                        {mansion.nearest_station} 徒歩
-                        {mansion.walking_minutes}分
+                        {mansion.nearest_station} 徒歩{mansion.walking_minutes}分
                       </p>
                     </Link>
                     <button
@@ -306,6 +340,18 @@ export default function WatchlistPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* 条件設定モーダル */}
+      {conditionsModal && (
+        <WatchConditionsModal
+          mansionId={conditionsModal}
+          mansionName={mansions.find((m) => m.id === conditionsModal)?.name || ""}
+          initialConditions={watchConditions[conditionsModal] || { ...DEFAULT_CONDITIONS }}
+          isOpen={true}
+          onClose={() => setConditionsModal(null)}
+          onSave={(conditions) => handleConditionsSave(conditionsModal, conditions)}
+        />
       )}
     </div>
   );

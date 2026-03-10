@@ -62,14 +62,14 @@ export default function AdminPage() {
   async function handleScrapeImages(mansionId: string) {
     setScrapingId(mansionId);
     try {
-      const res = await fetch(`/api/mansions/${mansionId}/scrape-images`, {
+      const res = await fetch("/api/images/auto-track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ mansionId }),
       });
       const data = await res.json();
       if (res.ok) {
-        showMessage("success", data.message || "画像を取得しました");
+        showMessage("success", `${data.saved || 0}枚の画像を自動取得しました (${data.source || ""})`);
       } else {
         showMessage("error", data.error || "画像取得に失敗しました");
       }
@@ -82,28 +82,23 @@ export default function AdminPage() {
 
   async function handleScrapeAllImages() {
     setScrapingId("all");
-    let success = 0;
-    let failed = 0;
-    for (const m of mansions) {
-      try {
-        const res = await fetch(`/api/mansions/${m.id}/scrape-images`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.count > 0) success++;
-          else failed++;
-        } else {
-          failed++;
-        }
-      } catch {
-        failed++;
+    try {
+      const res = await fetch("/api/images/auto-track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ limit: 50 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showMessage("success", `完了: ${data.processed}件処理 / ${data.totalFetched}枚取得`);
+      } else {
+        showMessage("error", data.error || "一括取得に失敗しました");
       }
+    } catch {
+      showMessage("error", "一括取得中にエラーが発生しました");
+    } finally {
+      setScrapingId(null);
     }
-    showMessage("success", `完了: ${success}件成功 / ${failed}件失敗`);
-    setScrapingId(null);
   }
 
   const tabs: { key: Tab; label: string }[] = [

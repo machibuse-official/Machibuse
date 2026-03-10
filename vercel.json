@@ -3,6 +3,10 @@
     {
       "path": "/api/scrape/cron",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/images/auto-track",
+      "schedule": "30 */6 * * *"
     }
   ]
 }
