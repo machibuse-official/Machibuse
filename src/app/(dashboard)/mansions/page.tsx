@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatusTag } from "@/components/ui/status-tag";
 import { AddMansionModal, type MansionFormData } from "@/components/mansion/add-mansion-modal";
 import { CardSkeleton } from "@/components/ui/skeleton";
+import { ImageSlideshow } from "@/components/ui/image-slideshow";
 import type { MansionWithStats } from "@/types";
 import {
   type UserPreferences,
@@ -84,6 +85,9 @@ export default function MansionsPage() {
     }
     if (currentPrefs.sizeMin !== null) {
       params.set("size_min", String(currentPrefs.sizeMin));
+    }
+    if (currentPrefs.features.length > 0) {
+      params.set("features", currentPrefs.features.join(","));
     }
 
     const queryString = params.toString();
@@ -272,13 +276,26 @@ export default function MansionsPage() {
                 style={{ animationDelay: `${index * 50}ms` }}
               >
               <Card className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/50">
-                {/* 外観画像（フォールバック付き） */}
-                <div className="relative h-40 w-full overflow-hidden bg-slate-100">
-                  <img
-                    src={mansion.exterior_image_url || getFallbackImage(mansion.id)}
-                    alt={mansion.name}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
+                {/* 物件画像（スライドショー） */}
+                <div className="relative h-44 w-full bg-slate-100">
+                  {(() => {
+                    const allImages = [
+                      ...(mansion.images || []),
+                      ...(mansion.exterior_image_url && !(mansion.images || []).some(img => img.url === mansion.exterior_image_url)
+                        ? [{ url: mansion.exterior_image_url, type: "exterior", caption: "外観" }]
+                        : []),
+                    ];
+                    const displayImages = allImages.length > 0
+                      ? allImages
+                      : [{ url: getFallbackImage(mansion.id), type: "exterior", caption: null }];
+                    return (
+                      <ImageSlideshow
+                        images={displayImages}
+                        alt={mansion.name}
+                        className="h-full w-full"
+                      />
+                    );
+                  })()}
                   {/* ハートオーバーレイ */}
                   <button
                     onClick={(e) => handleToggleWatch(e, mansion.id)}

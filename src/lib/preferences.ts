@@ -7,6 +7,7 @@ export interface UserPreferences {
   rentMin: number | null; // 万円
   walkingMax: number | null; // 分
   sizeMin: number | null; // ㎡
+  features: string[]; // こだわり条件
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -16,7 +17,94 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   rentMin: null,
   walkingMax: null,
   sizeMin: null,
+  features: [],
 };
+
+// こだわり条件カテゴリ
+export const FEATURE_CATEGORIES = [
+  {
+    label: "収納",
+    icon: "📦",
+    options: [
+      "ウォークインクローゼット",
+      "シューズボックス",
+      "床下収納",
+      "パントリー",
+      "納戸",
+    ],
+  },
+  {
+    label: "キッチン",
+    icon: "🍳",
+    options: [
+      "システムキッチン",
+      "カウンターキッチン",
+      "IHコンロ",
+      "ガスコンロ",
+      "食洗機",
+      "浄水器",
+    ],
+  },
+  {
+    label: "バス・トイレ",
+    icon: "🚿",
+    options: [
+      "バス・トイレ別",
+      "追い焚き",
+      "浴室乾燥機",
+      "温水洗浄便座",
+      "独立洗面台",
+    ],
+  },
+  {
+    label: "セキュリティ",
+    icon: "🔒",
+    options: [
+      "オートロック",
+      "モニター付きインターホン",
+      "防犯カメラ",
+      "ディンプルキー",
+      "宅配ボックス",
+    ],
+  },
+  {
+    label: "通信・設備",
+    icon: "📡",
+    options: [
+      "インターネット無料",
+      "光ファイバー",
+      "BS/CS対応",
+      "CATV",
+      "エアコン付き",
+    ],
+  },
+  {
+    label: "近隣施設",
+    icon: "🏪",
+    options: [
+      "コンビニ徒歩5分以内",
+      "スーパー徒歩5分以内",
+      "病院近い",
+      "公園近い",
+      "学校近い",
+    ],
+  },
+  {
+    label: "その他",
+    icon: "✨",
+    options: [
+      "ペット可",
+      "楽器可",
+      "2人入居可",
+      "フローリング",
+      "角部屋",
+      "南向き",
+      "最上階",
+      "駐車場あり",
+      "駐輪場あり",
+    ],
+  },
+] as const;
 
 const STORAGE_KEY = "machibuse_preferences";
 
@@ -40,6 +128,7 @@ export function loadPreferences(): UserPreferences {
       rentMin: typeof parsed.rentMin === "number" ? parsed.rentMin : null,
       walkingMax: typeof parsed.walkingMax === "number" ? parsed.walkingMax : null,
       sizeMin: typeof parsed.sizeMin === "number" ? parsed.sizeMin : null,
+      features: Array.isArray(parsed.features) ? parsed.features : [],
     };
   } catch {
     return { ...DEFAULT_PREFERENCES };
@@ -53,7 +142,8 @@ export function hasPreferences(prefs: UserPreferences): boolean {
     prefs.rentMax !== null ||
     prefs.rentMin !== null ||
     prefs.walkingMax !== null ||
-    prefs.sizeMin !== null
+    prefs.sizeMin !== null ||
+    prefs.features.length > 0
   );
 }
 

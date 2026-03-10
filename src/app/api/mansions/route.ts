@@ -36,6 +36,13 @@ export async function GET(request: NextRequest) {
         layout_type,
         size_sqm,
         listings (id, status, detected_at, current_rent)
+      ),
+      property_images (
+        id,
+        image_url,
+        image_type,
+        caption,
+        sort_order
       )
     `)
     .order("updated_at", { ascending: false });
@@ -133,9 +140,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 画像を整理（sort_order順）
+    const images = ((mansion.property_images as Array<{
+      id: string;
+      image_url: string;
+      image_type: string;
+      caption: string | null;
+      sort_order: number;
+    }>) || []).sort((a, b) => a.sort_order - b.sort_order);
+
     return {
       ...mansion,
       units: undefined,
+      property_images: undefined,
+      images: images.map((img) => ({
+        url: img.image_url,
+        type: img.image_type,
+        caption: img.caption,
+      })),
       active_listings_count: activeListings.length,
       known_unit_types_count: units.length,
       recent_listings_count: recentListings.length,

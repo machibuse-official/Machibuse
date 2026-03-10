@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-type Tab = "mansion" | "unit" | "listing";
+type Tab = "mansion" | "unit" | "listing" | "images";
 
 interface Mansion {
   id: string;
@@ -57,10 +57,60 @@ export default function AdminPage() {
     setTimeout(() => setMessage(null), 4000);
   }
 
+  const [scrapingId, setScrapingId] = useState<string | null>(null);
+
+  async function handleScrapeImages(mansionId: string) {
+    setScrapingId(mansionId);
+    try {
+      const res = await fetch(`/api/mansions/${mansionId}/scrape-images`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showMessage("success", data.message || "画像を取得しました");
+      } else {
+        showMessage("error", data.error || "画像取得に失敗しました");
+      }
+    } catch {
+      showMessage("error", "画像取得中にエラーが発生しました");
+    } finally {
+      setScrapingId(null);
+    }
+  }
+
+  async function handleScrapeAllImages() {
+    setScrapingId("all");
+    let success = 0;
+    let failed = 0;
+    for (const m of mansions) {
+      try {
+        const res = await fetch(`/api/mansions/${m.id}/scrape-images`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.count > 0) success++;
+          else failed++;
+        } else {
+          failed++;
+        }
+      } catch {
+        failed++;
+      }
+    }
+    showMessage("success", `完了: ${success}件成功 / ${failed}件失敗`);
+    setScrapingId(null);
+  }
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "mansion", label: "建物登録" },
     { key: "unit", label: "間取り登録" },
     { key: "listing", label: "募集登録" },
+    { key: "images", label: "画像管理" },
   ];
 
   return (
@@ -125,6 +175,42 @@ export default function AdminPage() {
           onSuccess={() => showMessage("success", "募集情報を登録しました")}
           onError={(msg) => showMessage("error", msg)}
         />
+      )}
+
+      {activeTab === "images" && (
+        <Card>
+          <CardContent>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              画像一括取得
+            </h2>
+            <p className="mb-4 text-sm text-gray-500">
+              各建物の名前でSUUMOを検索し、外観・エントランス等の写真を自動取得します。
+            </p>
+            <Button
+              onClick={handleScrapeAllImages}
+              disabled={scrapingId === "all"}
+            >
+              {scrapingId === "all" ? "取得中..." : "全建物の画像を一括取得"}
+            </Button>
+
+            <div className="mt-6 space-y-2">
+              <h3 className="text-sm font-medium text-gray-700">個別取得</h3>
+              {mansions.map((m) => (
+                <div key={m.id} className="flex items-center justify-between rounded-lg border border-gray-100 p-3">
+                  <span className="text-sm font-medium text-gray-900">{m.name}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleScrapeImages(m.id)}
+                    disabled={scrapingId !== null}
+                  >
+                    {scrapingId === m.id ? "取得中..." : "画像取得"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

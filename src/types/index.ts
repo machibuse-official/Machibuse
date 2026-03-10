@@ -142,6 +142,12 @@ export interface NotificationSettings {
 export type MansionStatus = "active" | "new" | "past" | "unknown";
 export type UnitStatus = "active" | "past" | "unknown";
 
+export interface MansionImage {
+  url: string;
+  type: string;
+  caption: string | null;
+}
+
 export interface MansionWithStats extends Mansion {
   active_listings_count: number;
   known_unit_types_count: number;
@@ -149,6 +155,7 @@ export interface MansionWithStats extends Mansion {
   last_listing_date: string | null;
   is_watched: boolean;
   status: MansionStatus;
+  images?: MansionImage[];
 }
 
 export interface UnitWithStats extends Unit {
