@@ -5,6 +5,7 @@ import { StatusTag } from "@/components/ui/status-tag";
 import { WatchUnitButton } from "@/components/unit/watch-unit-button";
 import { AddListingSection } from "@/components/listing/add-listing-section";
 import { RentHistoryChart } from "@/components/chart/rent-history-chart";
+import { FeatureTags } from "@/components/ui/feature-tags";
 import {
   getUnitById,
   getMansionById,
@@ -70,14 +71,95 @@ export default async function UnitDetailPage({
         <WatchUnitButton unitId={unit.id} initialIsWatched={unit.is_watched} />
       </div>
 
-      {/* 間取り図プレースホルダー */}
+      {/* 間取り図 */}
       <Card>
         <CardContent>
-          <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
-            <p className="text-gray-400">間取り図（未登録）</p>
-          </div>
+          {unit.floorplan_image_url ? (
+            <div className="flex items-center justify-center">
+              <img src={unit.floorplan_image_url} alt="間取り図" className="max-h-96 rounded-lg object-contain" />
+            </div>
+          ) : (
+            <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
+              <p className="text-gray-400">間取り図（未登録）</p>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* 住戸詳細情報 */}
+      {(unit.balcony_sqm || unit.bath_toilet_separate !== undefined || unit.storage || unit.direction || unit.balcony || unit.room_number) && (
+        <Card>
+          <CardContent>
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+              住戸詳細
+            </h2>
+            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+              {unit.room_number && (
+                <div>
+                  <p className="text-gray-500">部屋番号</p>
+                  <p className="font-bold text-gray-900">{unit.room_number}</p>
+                </div>
+              )}
+              {unit.direction && (
+                <div>
+                  <p className="text-gray-500">向き</p>
+                  <p className="font-bold text-gray-900">{unit.direction}</p>
+                </div>
+              )}
+              {unit.balcony_sqm && (
+                <div>
+                  <p className="text-gray-500">バルコニー面積</p>
+                  <p className="font-bold text-gray-900">{unit.balcony_sqm}㎡</p>
+                </div>
+              )}
+              {unit.balcony && (
+                <div>
+                  <p className="text-gray-500">バルコニー</p>
+                  <p className="font-bold text-gray-900">{unit.balcony}</p>
+                </div>
+              )}
+              {unit.bath_toilet_separate !== undefined && unit.bath_toilet_separate !== null && (
+                <div>
+                  <p className="text-gray-500">バス・トイレ別</p>
+                  <p className="font-bold text-gray-900">{unit.bath_toilet_separate ? "別" : "一体型"}</p>
+                </div>
+              )}
+              {unit.storage && (
+                <div>
+                  <p className="text-gray-500">収納</p>
+                  <p className="font-bold text-gray-900">{unit.storage}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 設備・特徴タグ */}
+      {(() => {
+        const first = activeListings[0];
+        if (!first) return null;
+        const intFeats = first.interior_features ?? [];
+        const bldFeats = first.building_features ?? [];
+        if (intFeats.length === 0 && bldFeats.length === 0) return null;
+        return (
+        <Card>
+          <CardContent>
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+              設備・特徴
+            </h2>
+            <div className="space-y-4">
+              {intFeats.length > 0 && (
+                <FeatureTags features={intFeats} label="室内設備" />
+              )}
+              {bldFeats.length > 0 && (
+                <FeatureTags features={bldFeats} label="建物設備" />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        );
+      })()}
 
       {/* 現在の状態 */}
       <Card>

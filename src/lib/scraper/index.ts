@@ -74,6 +74,7 @@ async function findOrCreateMansion(supabase: any, item: ScrapedListing): Promise
       address: item.address,
       nearest_station: item.nearest_station || null,
       walking_minutes: item.walking_minutes || null,
+      exterior_image_url: item.exterior_image_url || null,
     })
     .select("id")
     .single();
@@ -119,6 +120,7 @@ async function findOrCreateUnit(supabase: any, mansionId: string, item: ScrapedL
       size_sqm: item.size_sqm,
       floor_range: item.floor ? `${item.floor}階` : null,
       last_rent: item.rent,
+      floorplan_image_url: item.floorplan_image_url || null,
     })
     .select("id")
     .single();
@@ -174,24 +176,56 @@ async function findOrCreateListing(supabase: any, unitId: string, item: ScrapedL
   }
 
   // 新規作成
-  const { error: insertError } = await supabase.from("listings").insert({
-    unit_id: unitId,
-    status: "active",
-    current_rent: item.rent,
-    management_fee: item.management_fee,
-    floor: item.floor,
-    source_site: item.source_site,
-    source_url: item.source_url,
-    detected_at: new Date().toISOString(),
-    scraped_at: new Date().toISOString(),
-  });
+  const { data: newListing, error: insertError } = await supabase
+    .from("listings")
+    .insert({
+      unit_id: unitId,
+      status: "active",
+      current_rent: item.rent,
+      management_fee: item.management_fee,
+      deposit: item.deposit,
+      key_money: item.key_money,
+      floor: item.floor,
+      interior_features: item.interior_features.length > 0 ? item.interior_features : null,
+      building_features: item.building_features.length > 0 ? item.building_features : null,
+      move_in_date: item.move_in_date,
+      source_site: item.source_site,
+      source_url: item.source_url,
+      detected_at: new Date().toISOString(),
+      scraped_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
 
   if (insertError) {
     throw new Error(`Listing作成エラー: ${insertError.message}`);
+  }
+
+  // 画像を property_images テーブルに保存
+  if (newListing && item.images.length > 0) {
+    const imageRows = item.images.map((img, index) => ({
+      listing_id: newListing.id,
+      unit_id: unitId,
+      image_url: img.url,
+      image_type: img.type,
+      caption: img.caption,
+      sort_order: index,
+    }));
+
+    const { error: imgError } = await supabase
+      .from("property_images")
+      .insert(imageRows);
+
+    if (imgError) {
+      console.error(`[scraper] 画像保存エラー: ${imgError.message}`);
+    }
   }
 
   return "created";
 }
 
 export { scrapeSuumoPage } from "./suumo";
+export { scrapeLIFULLPage } from "./lifull";
+export { scrapeAtHomePage } from "./athome";
+export { scrapeChintaiPage } from "./chintai";
 export type { ScrapedListing } from "./types";

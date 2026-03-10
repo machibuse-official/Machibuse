@@ -1,9 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { scrapeSuumoPage, processScrapedListings } from "@/lib/scraper";
+import {
+  scrapeSuumoPage,
+  scrapeLIFULLPage,
+  scrapeAtHomePage,
+  scrapeChintaiPage,
+  processScrapedListings,
+} from "@/lib/scraper";
+import { ScrapedListing } from "@/lib/scraper/types";
 
-const SUUMO_SEARCH_BASE =
-  "https://suumo.jp/jj/chintai/ichiran/FR301FC001/?ar=030&bs=040&fw=";
+// 各サイトの検索URLテンプレート（建物名をエンコードして末尾に付与）
+const SEARCH_SITES = [
+  {
+    name: "suumo",
+    baseUrl: "https://suumo.jp/jj/chintai/ichiran/FR301FC001/?ar=030&bs=040&fw=",
+    scraper: scrapeSuumoPage,
+  },
+  {
+    name: "lifull",
+    baseUrl: "https://www.homes.co.jp/chintai/tokyo/list/?keyword=",
+    scraper: scrapeLIFULLPage,
+  },
+  {
+    name: "athome",
+    baseUrl: "https://www.athome.co.jp/chintai/keyword/?keyword=",
+    scraper: scrapeAtHomePage,
+  },
+  {
+    name: "chintai",
+    baseUrl: "https://www.chintai.net/list/?keyword=",
+    scraper: scrapeChintaiPage,
+  },
+] as const;
 
 /**
  * GET /api/scrape/cron
@@ -64,6 +92,7 @@ export async function GET(request: NextRequest) {
 
     const results: Array<{
       mansion_name: string;
+      site: string;
       created: number;
       updated: number;
       skipped: number;
@@ -71,31 +100,37 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     for (const name of mansionNames) {
-      try {
-        // 建物名でSUUMO検索URLを生成
-        const searchUrl =
-          SUUMO_SEARCH_BASE + encodeURIComponent(name);
+      for (const site of SEARCH_SITES) {
+        try {
+          // 建物名で検索URLを生成
+          const searchUrl = site.baseUrl + encodeURIComponent(name);
 
-        const listings = await scrapeSuumoPage(searchUrl);
-        const result = await processScrapedListings(listings);
+          const listings: ScrapedListing[] = await site.scraper(searchUrl);
+          const result = await processScrapedListings(listings);
 
-        results.push({
-          mansion_name: name,
-          ...result,
-        });
+          results.push({
+            mansion_name: name,
+            site: site.name,
+            ...result,
+          });
+        } catch (error) {
+          console.error(
+            `[cron] ${name} (${site.name}) のスクレイプエラー:`,
+            error
+          );
+          results.push({
+            mansion_name: name,
+            site: site.name,
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            error:
+              error instanceof Error ? error.message : "不明なエラー",
+          });
+        }
 
-        // レートリミット対策: リクエスト間に2秒待機
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (error) {
-        console.error(`[cron] ${name} のスクレイプエラー:`, error);
-        results.push({
-          mansion_name: name,
-          created: 0,
-          updated: 0,
-          skipped: 0,
-          error:
-            error instanceof Error ? error.message : "不明なエラー",
-        });
+        // レートリミット対策: リクエスト間に1秒待機
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -103,7 +138,7 @@ export async function GET(request: NextRequest) {
     const totalUpdated = results.reduce((sum, r) => sum + r.updated, 0);
 
     return NextResponse.json({
-      message: `${mansionNames.length}件の建物をスクレイプしました`,
+      message: `${mansionNames.length}件の建物を${SEARCH_SITES.length}サイトからスクレイプしました`,
       total_created: totalCreated,
       total_updated: totalUpdated,
       results,

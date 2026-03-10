@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusTag } from "@/components/ui/status-tag";
 import { Button } from "@/components/ui/button";
+import { PropertyMap } from "@/components/ui/property-map";
 import { AddUnitModal, type UnitFormData } from "@/components/mansion/add-unit-modal";
 import type { MansionWithStats, UnitWithStats, Listing } from "@/types";
 
@@ -137,6 +138,106 @@ export function MansionDetailClient({
           </CardContent>
         </Card>
       </div>
+
+      {/* 外観画像 */}
+      {mansion.exterior_image_url && (
+        <div className="overflow-hidden rounded-lg">
+          <img
+            src={mansion.exterior_image_url}
+            alt={mansion.name}
+            className="h-64 w-full object-cover"
+          />
+        </div>
+      )}
+
+      {/* 建物詳細情報 */}
+      <Card>
+        <CardContent>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            建物詳細
+          </h2>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+            {mansion.structure && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">構造</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.structure}
+                </dd>
+              </div>
+            )}
+            {mansion.construction_date && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">築年月</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.construction_date}
+                </dd>
+              </div>
+            )}
+            {mansion.total_units != null && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">総戸数</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.total_units}戸
+                </dd>
+              </div>
+            )}
+            {mansion.floors != null && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">階数</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.floors}階建
+                </dd>
+              </div>
+            )}
+            {mansion.management_company && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">管理会社</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.management_company}
+                </dd>
+              </div>
+            )}
+            {mansion.pet_allowed != null && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">ペット可</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.pet_allowed ? "可" : "不可"}
+                </dd>
+              </div>
+            )}
+            {mansion.parking_available != null && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">駐車場</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.parking_available ? "あり" : "なし"}
+                </dd>
+              </div>
+            )}
+            {mansion.second_nearest_station && (
+              <div className="flex justify-between border-b border-gray-100 py-1.5">
+                <dt className="text-sm text-gray-500">2番目の最寄り駅</dt>
+                <dd className="text-sm font-medium text-gray-900">
+                  {mansion.second_nearest_station}
+                  {mansion.second_walking_minutes != null &&
+                    ` 徒歩${mansion.second_walking_minutes}分`}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </CardContent>
+      </Card>
+
+      {/* 地図 */}
+      {mansion.address && (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900">地図</h2>
+          <PropertyMap
+            latitude={mansion.latitude}
+            longitude={mansion.longitude}
+            address={mansion.address}
+          />
+        </div>
+      )}
 
       {/* アクションバー */}
       <div className="flex gap-3">

@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { scrapeSuumoPage, processScrapedListings } from "@/lib/scraper";
+import {
+  scrapeSuumoPage,
+  scrapeLIFULLPage,
+  scrapeAtHomePage,
+  scrapeChintaiPage,
+  processScrapedListings,
+} from "@/lib/scraper";
+import { ScrapedListing } from "@/lib/scraper/types";
+
+const SUPPORTED_SOURCES = ["suumo", "lifull", "athome", "chintai"] as const;
+type Source = (typeof SUPPORTED_SOURCES)[number];
 
 /**
  * POST /api/scrape
@@ -36,16 +46,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!body.source || body.source !== "suumo") {
+  if (!body.source || !SUPPORTED_SOURCES.includes(body.source as Source)) {
     return NextResponse.json(
-      { error: "対応しているソースは suumo のみです" },
+      { error: `対応しているソースは ${SUPPORTED_SOURCES.join(", ")} です` },
       { status: 400 }
     );
   }
 
   try {
-    // スクレイプ実行
-    const listings = await scrapeSuumoPage(body.url);
+    // ソースに応じたスクレイパーを選択して実行
+    let listings: ScrapedListing[];
+    switch (body.source as Source) {
+      case "suumo":
+        listings = await scrapeSuumoPage(body.url);
+        break;
+      case "lifull":
+        listings = await scrapeLIFULLPage(body.url);
+        break;
+      case "athome":
+        listings = await scrapeAtHomePage(body.url);
+        break;
+      case "chintai":
+        listings = await scrapeChintaiPage(body.url);
+        break;
+    }
 
     if (listings.length === 0) {
       return NextResponse.json(
