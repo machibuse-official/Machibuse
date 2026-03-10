@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
 
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const viewport: Viewport = {
@@ -13,18 +19,17 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#2563eb",
+  themeColor: "#0f172a",
 };
 
 export const metadata: Metadata = {
-  title: "待ち伏せ - 住戸トラッキングアプリ",
-  description:
-    "狙ったマンション・間取りが市場に出た瞬間に動ける不動産追跡アプリ",
+  title: "MACHIBUSE",
+  description: "理想の住まいを、誰よりも早く。",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "待ち伏せ",
+    title: "MACHIBUSE",
   },
 };
 
@@ -38,7 +43,7 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className={`${notoSansJP.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${notoSansJP.variable} font-sans antialiased`}>
         {children}
         <script
           dangerouslySetInnerHTML={{

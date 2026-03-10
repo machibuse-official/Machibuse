@@ -139,7 +139,7 @@ export default function MansionsPage() {
         <p className="text-sm text-red-600">{error}</p>
         <button
           onClick={fetchMansions}
-          className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
         >
           再試行
         </button>
@@ -151,8 +151,8 @@ export default function MansionsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div className="h-8 w-32 animate-pulse rounded bg-gray-200" />
-          <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
+          <div className="h-8 w-32 animate-pulse rounded-lg bg-slate-200" />
+          <div className="h-10 w-32 animate-pulse rounded-lg bg-slate-200" />
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -166,10 +166,13 @@ export default function MansionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">建物一覧</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">建物一覧</h1>
+          <p className="mt-0.5 text-sm text-slate-500">トラッキング中の全物件</p>
+        </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800"
         >
           + 建物を登録
         </button>
@@ -187,10 +190,10 @@ export default function MansionsPage() {
             <button
               key={f.key}
               onClick={() => { setFilter(f.key); setPage(1); }}
-              className={`rounded-full px-3 py-1 ${
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 filter === f.key
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {f.label}
@@ -198,11 +201,11 @@ export default function MansionsPage() {
           ))}
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500">並び替え:</span>
+          <span className="text-slate-500">並び替え:</span>
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400/20"
           >
             {prefs && hasPreferences(prefs) && (
               <option value="match">おすすめ順</option>
@@ -215,7 +218,7 @@ export default function MansionsPage() {
         </div>
       </div>
 
-      <p className="text-sm text-gray-500">
+      <p className="text-sm tabular-nums text-slate-500">
         {filtered.length}件中 {Math.min((page - 1) * ITEMS_PER_PAGE + 1, filtered.length)}-{Math.min(page * ITEMS_PER_PAGE, filtered.length)}件を表示
       </p>
 
@@ -225,29 +228,33 @@ export default function MansionsPage() {
           const badge = getMatchBadge(score);
           return (
           <Link key={mansion.id} href={`/mansions/${mansion.id}`}>
-            <Card className="transition-shadow hover:shadow-md">
+            <Card className="transition-all hover:shadow-md">
               <CardContent>
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-base font-semibold text-gray-900">
+                    <h3 className="truncate text-base font-semibold text-slate-900">
                       {mansion.name}
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+                      <svg className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                      </svg>
                       {mansion.nearest_station} 徒歩{mansion.walking_minutes}分
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="mt-0.5 text-xs text-slate-400">
                       {mansion.construction_date} / {mansion.floors}階建 /{" "}
                       {mansion.total_units}戸
                     </p>
                   </div>
-                  <div className="ml-2 flex flex-shrink-0 flex-col items-end gap-1">
+                  <div className="ml-2 flex flex-shrink-0 flex-col items-end gap-1.5">
                     {badge && (
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
                         {badge.label} {score}%
                       </span>
                     )}
                     {mansion.is_watched && (
-                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                      <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
                         監視中
                       </span>
                     )}
@@ -261,18 +268,18 @@ export default function MansionsPage() {
                   {mansion.recent_listings_count > 0 && <StatusTag status="new" />}
                 </div>
 
-                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-gray-100 pt-3 text-center">
+                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-center">
                   <div>
-                    <p className="text-lg font-bold text-gray-900">{mansion.active_listings_count}</p>
-                    <p className="text-xs text-gray-500">募集中</p>
+                    <p className="text-lg font-bold tabular-nums text-slate-900">{mansion.active_listings_count}</p>
+                    <p className="text-xs text-slate-500">募集中</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-gray-900">{mansion.known_unit_types_count}</p>
-                    <p className="text-xs text-gray-500">確認タイプ</p>
+                    <p className="text-lg font-bold tabular-nums text-slate-900">{mansion.known_unit_types_count}</p>
+                    <p className="text-xs text-slate-500">確認タイプ</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-gray-900">{mansion.recent_listings_count}</p>
-                    <p className="text-xs text-gray-500">30日新着</p>
+                    <p className="text-lg font-bold tabular-nums text-slate-900">{mansion.recent_listings_count}</p>
+                    <p className="text-xs text-slate-500">30日新着</p>
                   </div>
                 </div>
               </CardContent>
@@ -283,11 +290,11 @@ export default function MansionsPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-1.5">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             前へ
           </button>
@@ -295,8 +302,10 @@ export default function MansionsPage() {
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`rounded-lg px-3 py-1.5 text-sm ${
-                page === p ? "bg-blue-600 text-white" : "border border-gray-300 hover:bg-gray-50"
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                page === p
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
               {p}
@@ -305,7 +314,7 @@ export default function MansionsPage() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             次へ
           </button>
