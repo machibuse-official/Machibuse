@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusTag } from "@/components/ui/status-tag";
 import { Button } from "@/components/ui/button";
 import { PropertyMap } from "@/components/ui/property-map";
 import { AddUnitModal, type UnitFormData } from "@/components/mansion/add-unit-modal";
+import { isWatched as checkWatched, toggleWatchlist } from "@/lib/watchlist";
 import type { MansionWithStats, UnitWithStats, Listing } from "@/types";
 
 interface MansionDetailClientProps {
@@ -16,13 +17,17 @@ interface MansionDetailClientProps {
 }
 
 export function MansionDetailClient({
-  mansion: initialMansion,
+  mansion,
   initialUnits,
   activeListings,
 }: MansionDetailClientProps) {
-  const [mansion, setMansion] = useState(initialMansion);
   const [units, setUnits] = useState(initialUnits);
   const [showAddUnit, setShowAddUnit] = useState(false);
+  const [watched, setWatched] = useState(false);
+
+  useEffect(() => {
+    setWatched(checkWatched(mansion.id));
+  }, [mansion.id]);
 
   async function handleAddUnit(data: UnitFormData) {
     const res = await fetch("/api/units", {
@@ -43,33 +48,9 @@ export function MansionDetailClient({
     }
   }
 
-  async function handleToggleWatch() {
-    if (mansion.is_watched) {
-      // 監視解除
-      const res = await fetch("/api/watchlists");
-      const watchlist = await res.json();
-      const entry = Array.isArray(watchlist)
-        ? watchlist.find(
-            (w: { target_mansion_id: string | null }) => w.target_mansion_id === mansion.id
-          )
-        : null;
-      if (entry) {
-        await fetch("/api/watchlists", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: entry.id }),
-        });
-      }
-      setMansion((prev) => ({ ...prev, is_watched: false }));
-    } else {
-      // 監視追加
-      await fetch("/api/watchlists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target_mansion_id: mansion.id }),
-      });
-      setMansion((prev) => ({ ...prev, is_watched: true }));
-    }
+  function handleToggleWatch() {
+    const nowWatched = toggleWatchlist(mansion.id);
+    setWatched(nowWatched);
   }
 
   return (
@@ -96,10 +77,10 @@ export function MansionDetailClient({
           </p>
         </div>
         <Button
-          variant={mansion.is_watched ? "secondary" : "primary"}
+          variant={watched ? "secondary" : "primary"}
           onClick={handleToggleWatch}
         >
-          {mansion.is_watched ? "監視中" : "この建物を監視する"}
+          {watched ? "監視中" : "この建物を監視する"}
         </Button>
       </div>
 
@@ -242,10 +223,10 @@ export function MansionDetailClient({
       {/* アクションバー */}
       <div className="flex gap-3">
         <Button
-          variant={mansion.is_watched ? "secondary" : "primary"}
+          variant={watched ? "secondary" : "primary"}
           onClick={handleToggleWatch}
         >
-          {mansion.is_watched ? "監視中" : "建物を監視する"}
+          {watched ? "監視中" : "建物を監視する"}
         </Button>
         <Button variant="outline" onClick={() => setShowAddUnit(true)}>
           + 間取りタイプを追加

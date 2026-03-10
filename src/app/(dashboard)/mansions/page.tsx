@@ -242,66 +242,107 @@ export default function MansionsPage() {
           const isWatched = watchedIds.includes(mansion.id);
           return (
             <Link key={mansion.id} href={`/mansions/${mansion.id}`}>
-              <Card className="group relative transition-all hover:shadow-md">
-                <CardContent>
-                  {/* お気に入りハート */}
-                  <button
-                    onClick={(e) => handleToggleWatch(e, mansion.id)}
-                    className="absolute right-4 top-4 z-10 rounded-full p-1.5 transition-colors hover:bg-slate-100"
-                    title={isWatched ? "監視解除" : "監視する"}
-                  >
-                    <svg
-                      className={`h-5 w-5 transition-colors ${
-                        isWatched
-                          ? "fill-red-500 text-red-500"
-                          : "fill-none text-slate-300 group-hover:text-slate-400"
-                      }`}
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
+              <Card className="group relative overflow-hidden transition-all hover:shadow-md">
+                {/* 外観画像 */}
+                {mansion.exterior_image_url ? (
+                  <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+                    <img
+                      src={mansion.exterior_image_url}
+                      alt={mansion.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    {/* ハートオーバーレイ */}
+                    <button
+                      onClick={(e) => handleToggleWatch(e, mansion.id)}
+                      className="absolute right-2 top-2 z-10 rounded-full bg-white/80 p-1.5 backdrop-blur-sm transition-colors hover:bg-white"
+                      title={isWatched ? "監視解除" : "監視する"}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                      />
-                    </svg>
-                  </button>
-
-                  <div className="pr-8">
-                    <div className="flex items-start justify-between">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-base font-semibold text-slate-900">
-                          {mansion.name}
-                        </h3>
-                        <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-                          <svg className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                          </svg>
-                          {mansion.nearest_station} 徒歩{mansion.walking_minutes}分
-                        </p>
-                        <p className="mt-0.5 text-xs text-slate-400">
-                          {mansion.construction_date} / {mansion.floors}階建 /{" "}
-                          {mansion.total_units}戸
-                        </p>
-                      </div>
-                      <div className="ml-2 flex flex-shrink-0 flex-col items-end gap-1.5">
-                        {badge && (
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
-                            {badge.label}
-                          </span>
-                        )}
-                      </div>
+                      <svg
+                        className={`h-5 w-5 transition-colors ${
+                          isWatched
+                            ? "fill-red-500 text-red-500"
+                            : "fill-none text-slate-400"
+                        }`}
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                      </svg>
+                    </button>
+                    {/* バッジオーバーレイ */}
+                    <div className="absolute left-2 top-2 flex gap-1.5">
+                      {badge && (
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${badge.className}`}>
+                          {badge.label}
+                        </span>
+                      )}
+                      {mansion.active_listings_count > 0 && (
+                        <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-medium text-white shadow-sm">
+                          {mansion.active_listings_count}件募集中
+                        </span>
+                      )}
                     </div>
                   </div>
-
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {mansion.active_listings_count > 0 && <StatusTag status="active" />}
-                    {mansion.active_listings_count === 0 && mansion.last_listing_date && <StatusTag status="past" />}
-                    {!mansion.last_listing_date && <StatusTag status="unknown" />}
-                    {mansion.recent_listings_count > 0 && <StatusTag status="new" />}
+                ) : (
+                  <div className="relative flex h-40 w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                    <svg className="h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    {/* ハート（画像なし時） */}
+                    <button
+                      onClick={(e) => handleToggleWatch(e, mansion.id)}
+                      className="absolute right-2 top-2 z-10 rounded-full bg-white/80 p-1.5 transition-colors hover:bg-white"
+                      title={isWatched ? "監視解除" : "監視する"}
+                    >
+                      <svg
+                        className={`h-5 w-5 transition-colors ${
+                          isWatched
+                            ? "fill-red-500 text-red-500"
+                            : "fill-none text-slate-400"
+                        }`}
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                      </svg>
+                    </button>
+                    <div className="absolute left-2 top-2 flex gap-1.5">
+                      {badge && (
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${badge.className}`}>
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                )}
+
+                <CardContent>
+                  <div className="mt-1">
+                    <h3 className="truncate text-base font-semibold text-slate-900">
+                      {mansion.name}
+                    </h3>
+                    <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+                      <svg className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                      </svg>
+                      {mansion.nearest_station} 徒歩{mansion.walking_minutes}分
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {mansion.construction_date} / {mansion.floors}階建 / {mansion.total_units}戸
+                    </p>
+                  </div>
+
+                  {/* ステータスタグ（画像がない場合のみ表示） */}
+                  {!mansion.exterior_image_url && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {mansion.active_listings_count > 0 && <StatusTag status="active" />}
+                      {mansion.active_listings_count === 0 && mansion.last_listing_date && <StatusTag status="past" />}
+                      {!mansion.last_listing_date && <StatusTag status="unknown" />}
+                    </div>
+                  )}
 
                   <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-center">
                     <div>
