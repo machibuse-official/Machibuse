@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const rows = images.map((img, i) => ({
       mansion_id: mansionId,
       image_url: img.url,
-      image_type: img.type === "common" ? "entrance" : img.type,
+      image_type: img.type,
       caption: img.caption,
       sort_order: i,
     }));

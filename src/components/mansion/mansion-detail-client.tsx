@@ -186,13 +186,11 @@ export function MansionDetailClient({
           );
         }
         return (
-          <div className="overflow-hidden rounded-lg h-72">
-            <ImageSlideshow
-              images={displayImages}
-              alt={mansion.name}
-              className="h-full w-full"
-            />
-          </div>
+          <ImageSlideshow
+            images={displayImages}
+            alt={mansion.name}
+            showCategories
+          />
         );
       })()}
 

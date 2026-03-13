@@ -30,7 +30,7 @@ export async function GET(
       id: `static-${i}`,
       mansion_id: id,
       image_url: img.url,
-      image_type: img.type === "common" ? "entrance" : img.type,
+      image_type: img.type,
       caption: img.caption,
       sort_order: i,
     }));

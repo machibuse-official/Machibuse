@@ -20,6 +20,7 @@ const HEADERS = {
 const IMAGE_TYPE_PATTERNS: { type: ScrapedImage["type"]; pattern: RegExp }[] = [
   { type: "exterior", pattern: /外観|building|outward|(?:^|\/)gaikan/i },
   { type: "entrance", pattern: /エントランス|entrance|ロビー|lobby/i },
+  { type: "common", pattern: /共用|共有|common|amenity|ラウンジ|lounge|ジム|gym|プール|pool|コンシェルジュ|concierge|駐車|parking/i },
   { type: "floorplan", pattern: /間取り|madori|floorplan|floor.?plan/i },
   { type: "interior", pattern: /室内|interior|living|居室|リビング|洋室|和室|LD|LDK/i },
   { type: "kitchen", pattern: /キッチン|kitchen|台所/i },
@@ -28,8 +29,8 @@ const IMAGE_TYPE_PATTERNS: { type: ScrapedImage["type"]; pattern: RegExp }[] = [
 ];
 
 const TYPE_PRIORITY: Record<string, number> = {
-  exterior: 0, entrance: 1, view: 2, interior: 3,
-  kitchen: 4, bathroom: 5, floorplan: 6, other: 7,
+  exterior: 0, entrance: 1, common: 2, view: 3, interior: 4,
+  kitchen: 5, bathroom: 6, floorplan: 7, other: 8,
 };
 
 function classifyImage(text: string): ScrapedImage["type"] {

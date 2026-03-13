@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
     // DB画像があればそちらを優先、なければ静的データ
     const finalImages = dbImages.length > 0
       ? dbImages.map((img) => ({ url: img.image_url, type: img.image_type, caption: img.caption }))
-      : staticImages.map((img) => ({ url: img.url, type: img.type === "common" ? "entrance" : img.type, caption: img.caption }));
+      : staticImages.map((img) => ({ url: img.url, type: img.type, caption: img.caption }));
 
     return {
       ...mansion,

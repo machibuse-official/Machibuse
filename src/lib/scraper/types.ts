@@ -5,6 +5,7 @@ export interface ScrapedImage {
     | "interior"
     | "floorplan"
     | "entrance"
+    | "common"
     | "kitchen"
     | "bathroom"
     | "view"
