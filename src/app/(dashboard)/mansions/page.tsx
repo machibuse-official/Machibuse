@@ -113,21 +113,6 @@ export default function MansionsPage() {
       .then((data) => {
         if (Array.isArray(data)) {
           setMansions(data);
-          // 画像のない建物を検出してバックグラウンドで自動取得
-          const noImageIds = data
-            .filter((m: MansionWithStats) => (!m.images || m.images.length === 0) && !m.exterior_image_url)
-            .slice(0, 5)
-            .map((m: MansionWithStats) => m.id);
-          if (noImageIds.length > 0) {
-            // 1件ずつバックグラウンドで取得
-            noImageIds.forEach((id: string) => {
-              fetch("/api/images/auto-track", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mansionId: id }),
-              }).catch(() => {});
-            });
-          }
         }
       })
       .catch((err) => setError(err.message))

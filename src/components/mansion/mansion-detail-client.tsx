@@ -40,36 +40,10 @@ export function MansionDetailClient({
             type: img.image_type,
             caption: img.caption,
           })));
-          setImageLoading(false);
-        } else {
-          // 画像がない → バックグラウンドで自動取得をトリガー
-          setImageLoading(false);
-          fetch("/api/images/auto-track", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mansionId: mansion.id }),
-          })
-            .then((res) => res.ok ? res.json() : null)
-            .then((result) => {
-              if (result && result.saved > 0) {
-                // 取得できたら再読み込み
-                return fetch(`/api/mansions/${mansion.id}/images`)
-                  .then((res) => res.ok ? res.json() : [])
-                  .then((imgs) => {
-                    if (Array.isArray(imgs) && imgs.length > 0) {
-                      setDbImages(imgs.map((img: { image_url: string; image_type: string; caption: string | null }) => ({
-                        url: img.image_url,
-                        type: img.image_type,
-                        caption: img.caption,
-                      })));
-                    }
-                  });
-              }
-            })
-            .catch(() => {});
         }
       })
-      .catch(() => setImageLoading(false));
+      .catch(() => {})
+      .finally(() => setImageLoading(false));
   }, [mansion.id]);
 
   async function handleAddUnit(data: UnitFormData) {

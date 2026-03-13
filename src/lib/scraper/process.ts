@@ -1,7 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { sendNotificationEmail } from "@/lib/email";
 import { getEmailSubject, getEmailBody } from "@/lib/email-templates";
-import { autoTrackImagesForMansion } from "@/lib/image-tracker";
 import type { ScrapedListing } from "./types";
 
 interface ProcessResult {
@@ -33,7 +32,6 @@ export async function processScrapedListingsWithNotifications(
   let notificationsCreated = 0;
   let emailsSent = 0;
   let imagesFetched = 0;
-  const mansionIdsToTrack = new Set<string>();
 
   // メール送信用の通知設定を事前取得
   let allSettings: Record<string, unknown>[] | null = null;
@@ -227,23 +225,11 @@ export async function processScrapedListingsWithNotifications(
           notificationsCreated += sent.notifications;
           emailsSent += sent.emails;
           created++;
-          mansionIdsToTrack.add(mansionId);
         }
       }
     } catch (error) {
       console.error("[process] リスティング処理エラー:", error);
       skipped++;
-    }
-  }
-
-  // 新規リスティングがあった建物の画像を自動追跡
-  for (const mansionId of mansionIdsToTrack) {
-    try {
-      const imgResult = await autoTrackImagesForMansion(mansionId);
-      imagesFetched += imgResult.saved;
-      console.log(`[image-tracker] ${mansionId}: ${imgResult.saved}枚 (${imgResult.source})`);
-    } catch (error) {
-      console.error(`[image-tracker] ${mansionId} 画像取得エラー:`, error);
     }
   }
 

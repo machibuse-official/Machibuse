@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { autoTrackImagesForMansion, deepScrapeFromSourceUrl } from "@/lib/image-tracker";
 import { ScrapedListing } from "./types";
 
 interface ProcessResult {
@@ -25,9 +24,6 @@ export async function processScrapedListings(
   let skipped = 0;
   let imagesFetched = 0;
 
-  // 画像追跡が必要なmansion_idを集める
-  const mansionIdsToTrack = new Set<string>();
-
   for (const item of listings) {
     try {
       // 1. 建物の検索 or 作成
@@ -41,7 +37,6 @@ export async function processScrapedListings(
 
       if (result === "created") {
         created++;
-        mansionIdsToTrack.add(mansionId);
       } else if (result === "updated") {
         updated++;
       } else {
@@ -53,17 +48,6 @@ export async function processScrapedListings(
         error
       );
       skipped++;
-    }
-  }
-
-  // 新規リスティングがあった建物の画像を自動取得
-  for (const mansionId of mansionIdsToTrack) {
-    try {
-      const imgResult = await autoTrackImagesForMansion(mansionId);
-      imagesFetched += imgResult.saved;
-      console.log(`[image-tracker] ${mansionId}: ${imgResult.saved}枚取得 (${imgResult.source})`);
-    } catch (error) {
-      console.error(`[image-tracker] ${mansionId} 画像取得エラー:`, error);
     }
   }
 
