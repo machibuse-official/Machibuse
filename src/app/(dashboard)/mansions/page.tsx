@@ -10,6 +10,7 @@ import type { MansionWithStats } from "@/types";
 const MansionMap = lazy(() => import("@/components/ui/mansion-map").then((m) => ({ default: m.MansionMap })));
 import {
   type UserPreferences,
+  type PropertyType,
   loadPreferences,
   savePreferences,
   hasPreferences,
@@ -19,6 +20,7 @@ import {
   LAYOUT_OPTIONS,
   FEATURE_CATEGORIES,
   RENT_OPTIONS,
+  SALE_PRICE_OPTIONS,
   SIZE_OPTIONS,
   WALKING_OPTIONS,
   POPULAR_FEATURES,
@@ -50,7 +52,7 @@ const NIFTY = {
   gray5: "#f9f9f9",
   bg: "#f2f2f7",
   black: "#000000",
-  font: '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif',
+  font: 'var(--font-inter), var(--font-noto-sans-jp), -apple-system, BlinkMacSystemFont, "Hiragino Sans", system-ui, sans-serif',
   rent: "#e5004f",
 };
 
@@ -271,6 +273,27 @@ export default function MansionsPage() {
 
       {/* スクロールエリア */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
+        {/* 物件タイプ */}
+        <div className="px-4 pt-6 pb-1">
+          <p className="mb-2 pl-1 text-[13px] font-normal text-[#8e8e93]">物件タイプ</p>
+          <div className="flex gap-[8px]">
+            {([
+              { value: "both" as PropertyType, label: "すべて" },
+              { value: "rental" as PropertyType, label: "賃貸" },
+              { value: "sale" as PropertyType, label: "売買" },
+            ]).map((type) => (
+              <button key={type.value} onClick={() => setSearchPrefs((prev) => ({ ...prev, propertyType: type.value }))}
+                className={`flex-1 rounded-[10px] py-[12px] text-center text-[15px] transition-colors ${
+                  searchPrefs.propertyType === type.value
+                    ? "bg-[#007aff] font-semibold text-white shadow-sm"
+                    : "bg-white text-[#000]"
+                }`}>
+                {type.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* エリア */}
         <div className="px-4 pt-6 pb-1">
           <p className="mb-2 pl-1 text-[13px] font-normal uppercase text-[#8e8e93]">エリア</p>
@@ -305,33 +328,63 @@ export default function MansionsPage() {
           </div>
         </div>
 
-        {/* 賃料 */}
-        <div className="px-4 pt-6 pb-1">
-          <p className="mb-2 pl-1 text-[13px] font-normal text-[#8e8e93]">賃料</p>
-          <div className="rounded-[12px] bg-white overflow-hidden">
-            <div className="flex items-center px-4 py-[14px]">
-              <div className="relative flex-1">
-                <select value={searchPrefs.rentMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMin: e.target.value === "" ? null : Number(e.target.value) }))}
-                  className="w-full appearance-none bg-transparent pr-6 text-[17px] text-[#000] outline-none">
-                  {RENT_OPTIONS.map((o) => <option key={`min-${o.value}`} value={o.value ?? ""}>{o.value === null ? "下限なし" : o.label}</option>)}
-                </select>
-                <svg className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c7c7cc]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              <span className="mx-4 text-[17px] text-[#8e8e93]">〜</span>
-              <div className="relative flex-1">
-                <select value={searchPrefs.rentMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMax: e.target.value === "" ? null : Number(e.target.value) }))}
-                  className="w-full appearance-none bg-transparent pr-6 text-[17px] text-[#000] outline-none">
-                  {RENT_OPTIONS.map((o) => <option key={`max-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : o.label}</option>)}
-                </select>
-                <svg className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c7c7cc]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
+        {/* 賃料 / 売買価格 */}
+        {searchPrefs.propertyType !== "sale" && (
+          <div className="px-4 pt-6 pb-1">
+            <p className="mb-2 pl-1 text-[13px] font-normal text-[#8e8e93]">賃料</p>
+            <div className="rounded-[12px] bg-white overflow-hidden">
+              <div className="flex items-center px-4 py-[14px]">
+                <div className="relative flex-1">
+                  <select value={searchPrefs.rentMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMin: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="w-full appearance-none bg-transparent pr-6 text-[17px] text-[#000] outline-none">
+                    {RENT_OPTIONS.map((o) => <option key={`min-${o.value}`} value={o.value ?? ""}>{o.value === null ? "下限なし" : o.label}</option>)}
+                  </select>
+                  <svg className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c7c7cc]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                <span className="mx-4 text-[17px] text-[#8e8e93]">〜</span>
+                <div className="relative flex-1">
+                  <select value={searchPrefs.rentMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMax: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="w-full appearance-none bg-transparent pr-6 text-[17px] text-[#000] outline-none">
+                    {RENT_OPTIONS.map((o) => <option key={`max-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : o.label}</option>)}
+                  </select>
+                  <svg className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c7c7cc]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+        {searchPrefs.propertyType !== "rental" && (
+          <div className="px-4 pt-6 pb-1">
+            <p className="mb-2 pl-1 text-[13px] font-normal text-[#8e8e93]">売買価格</p>
+            <div className="rounded-[12px] bg-white overflow-hidden">
+              <div className="flex items-center px-4 py-[14px]">
+                <div className="relative flex-1">
+                  <select value={searchPrefs.priceMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, priceMin: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="w-full appearance-none bg-transparent pr-6 text-[17px] text-[#000] outline-none">
+                    {SALE_PRICE_OPTIONS.map((o) => <option key={`smin-${o.value}`} value={o.value ?? ""}>{o.value === null ? "下限なし" : o.label}</option>)}
+                  </select>
+                  <svg className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c7c7cc]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                <span className="mx-4 text-[17px] text-[#8e8e93]">〜</span>
+                <div className="relative flex-1">
+                  <select value={searchPrefs.priceMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, priceMax: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="w-full appearance-none bg-transparent pr-6 text-[17px] text-[#000] outline-none">
+                    {SALE_PRICE_OPTIONS.map((o) => <option key={`smax-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : o.label}</option>)}
+                  </select>
+                  <svg className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c7c7cc]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 間取り */}
         <div className="px-4 pt-6 pb-1">
@@ -462,11 +515,11 @@ export default function MansionsPage() {
      モバイル結果画面（nifty iOS物件一覧 完全再現）
      ==================================================================== */
   const FILTER_TABS = [
+    { key: "type", label: "種別" },
     { key: "area", label: "場所" },
     { key: "walking", label: "駅徒歩" },
-    { key: "rent", label: "賃料" },
+    { key: "rent", label: searchPrefs.propertyType === "sale" ? "価格" : "賃料" },
     { key: "layout", label: "間取り" },
-    { key: "size", label: "専有面積" },
   ];
 
   const mobileResultsScreen = (
@@ -749,14 +802,32 @@ export default function MansionsPage() {
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[13px] text-[#8e8e93]">{FILTER_TABS.find(t => t.key === mobileFilterTab)?.label}</p>
               <button onClick={() => {
+                if (mobileFilterTab === "type") setSearchPrefs(p => ({ ...p, propertyType: "both" }));
                 if (mobileFilterTab === "area") setSearchPrefs(p => ({ ...p, areas: [] }));
                 if (mobileFilterTab === "walking") setSearchPrefs(p => ({ ...p, walkingMax: null }));
-                if (mobileFilterTab === "rent") setSearchPrefs(p => ({ ...p, rentMin: null, rentMax: null }));
+                if (mobileFilterTab === "rent") setSearchPrefs(p => ({ ...p, rentMin: null, rentMax: null, priceMin: null, priceMax: null }));
                 if (mobileFilterTab === "layout") setSearchPrefs(p => ({ ...p, layouts: [] }));
-                if (mobileFilterTab === "size") setSearchPrefs(p => ({ ...p, sizeMin: null }));
               }} className="text-[13px] text-[#007aff]">こだわらない</button>
             </div>
 
+            {mobileFilterTab === "type" && (
+              <div className="flex gap-[8px]">
+                {([
+                  { value: "both" as PropertyType, label: "すべて" },
+                  { value: "rental" as PropertyType, label: "賃貸" },
+                  { value: "sale" as PropertyType, label: "売買" },
+                ]).map((type) => (
+                  <button key={type.value} onClick={() => setSearchPrefs((prev) => ({ ...prev, propertyType: type.value }))}
+                    className={`flex-1 rounded-[10px] py-[10px] text-center text-[15px] ${
+                      searchPrefs.propertyType === type.value
+                        ? "bg-[#007aff] font-semibold text-white"
+                        : "bg-[#f2f2f7] text-[#000]"
+                    }`}>
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {mobileFilterTab === "area" && (
               <div className="flex flex-wrap gap-[6px]">
                 {AREA_OPTIONS.map((area) => (
@@ -778,8 +849,9 @@ export default function MansionsPage() {
                 </div>
               </div>
             )}
-            {mobileFilterTab === "rent" && (
+            {mobileFilterTab === "rent" && searchPrefs.propertyType !== "sale" && (
               <div className="rounded-[10px] bg-[#f2f2f7]">
+                <p className="px-4 pt-2 text-[12px] text-[#8e8e93]">賃料</p>
                 <div className="flex items-center px-4 py-3">
                   <select value={searchPrefs.rentMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMin: e.target.value === "" ? null : Number(e.target.value) }))}
                     className="flex-1 appearance-none bg-transparent text-[16px] text-[#000] outline-none">
@@ -789,6 +861,22 @@ export default function MansionsPage() {
                   <select value={searchPrefs.rentMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMax: e.target.value === "" ? null : Number(e.target.value) }))}
                     className="flex-1 appearance-none bg-transparent text-[16px] text-[#000] outline-none">
                     {RENT_OPTIONS.map((o) => <option key={`x-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : o.label}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+            {mobileFilterTab === "rent" && searchPrefs.propertyType !== "rental" && (
+              <div className="rounded-[10px] bg-[#f2f2f7] mt-2">
+                <p className="px-4 pt-2 text-[12px] text-[#8e8e93]">売買価格</p>
+                <div className="flex items-center px-4 py-3">
+                  <select value={searchPrefs.priceMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, priceMin: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="flex-1 appearance-none bg-transparent text-[16px] text-[#000] outline-none">
+                    {SALE_PRICE_OPTIONS.map((o) => <option key={`sm-${o.value}`} value={o.value ?? ""}>{o.value === null ? "下限なし" : o.label}</option>)}
+                  </select>
+                  <span className="mx-2 text-[#8e8e93]">〜</span>
+                  <select value={searchPrefs.priceMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, priceMax: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="flex-1 appearance-none bg-transparent text-[16px] text-[#000] outline-none">
+                    {SALE_PRICE_OPTIONS.map((o) => <option key={`sx-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : o.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -848,6 +936,20 @@ export default function MansionsPage() {
     <div style={{ fontFamily: '"Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif' }}>
       <div className="bg-[#0066cc] px-3 py-2"><span className="text-[13px] font-bold text-white">検索条件の変更</span></div>
       <div className="border-b border-[#ddd] px-3 py-2.5">
+        <p className="mb-1.5 text-[12px] font-bold text-[#333]">物件タイプ</p>
+        <div className="flex gap-[3px]">
+          {([
+            { value: "both" as PropertyType, label: "すべて" },
+            { value: "rental" as PropertyType, label: "賃貸" },
+            { value: "sale" as PropertyType, label: "売買" },
+          ]).map((type) => (
+            <label key={type.value} className={`flex flex-1 h-[26px] cursor-pointer items-center justify-center rounded-[2px] border text-[11px] font-medium ${searchPrefs.propertyType === type.value ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-[#bbb] bg-white text-[#333]"}`}>
+              <input type="radio" name="propertyType" checked={searchPrefs.propertyType === type.value} onChange={() => setSearchPrefs((prev) => ({ ...prev, propertyType: type.value }))} className="sr-only" />{type.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div className="border-b border-[#ddd] px-3 py-2.5">
         <p className="mb-1.5 text-[12px] font-bold text-[#333]">エリア</p>
         <div className="grid grid-cols-2 gap-x-1">
           {AREA_OPTIONS.map((area) => (
@@ -858,18 +960,34 @@ export default function MansionsPage() {
           ))}
         </div>
       </div>
-      <div className="border-b border-[#ddd] px-3 py-2.5">
-        <p className="mb-1.5 text-[12px] font-bold text-[#333]">賃料</p>
-        <div className="flex items-center gap-1">
-          <select value={searchPrefs.rentMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMin: e.target.value === "" ? null : Number(e.target.value) }))} className={selectClass}>
-            {RENT_OPTIONS.map((o) => <option key={`min-${o.value}`} value={o.value ?? ""}>{o.value === null ? "下限なし" : `${o.label}以上`}</option>)}
-          </select>
-          <span className="shrink-0 text-[12px] text-[#999]">〜</span>
-          <select value={searchPrefs.rentMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMax: e.target.value === "" ? null : Number(e.target.value) }))} className={selectClass}>
-            {RENT_OPTIONS.map((o) => <option key={`max-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : `${o.label}以下`}</option>)}
-          </select>
+      {searchPrefs.propertyType !== "sale" && (
+        <div className="border-b border-[#ddd] px-3 py-2.5">
+          <p className="mb-1.5 text-[12px] font-bold text-[#333]">賃料</p>
+          <div className="flex items-center gap-1">
+            <select value={searchPrefs.rentMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMin: e.target.value === "" ? null : Number(e.target.value) }))} className={selectClass}>
+              {RENT_OPTIONS.map((o) => <option key={`min-${o.value}`} value={o.value ?? ""}>{o.value === null ? "下限なし" : `${o.label}以上`}</option>)}
+            </select>
+            <span className="shrink-0 text-[12px] text-[#999]">〜</span>
+            <select value={searchPrefs.rentMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, rentMax: e.target.value === "" ? null : Number(e.target.value) }))} className={selectClass}>
+              {RENT_OPTIONS.map((o) => <option key={`max-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : `${o.label}以下`}</option>)}
+            </select>
+          </div>
         </div>
-      </div>
+      )}
+      {searchPrefs.propertyType !== "rental" && (
+        <div className="border-b border-[#ddd] px-3 py-2.5">
+          <p className="mb-1.5 text-[12px] font-bold text-[#333]">売買価格</p>
+          <div className="flex items-center gap-1">
+            <select value={searchPrefs.priceMin ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, priceMin: e.target.value === "" ? null : Number(e.target.value) }))} className={selectClass}>
+              {SALE_PRICE_OPTIONS.map((o) => <option key={`smin-${o.value}`} value={o.value ?? ""}>{o.value === null ? "下限なし" : `${o.label}以上`}</option>)}
+            </select>
+            <span className="shrink-0 text-[12px] text-[#999]">〜</span>
+            <select value={searchPrefs.priceMax ?? ""} onChange={(e) => setSearchPrefs((prev) => ({ ...prev, priceMax: e.target.value === "" ? null : Number(e.target.value) }))} className={selectClass}>
+              {SALE_PRICE_OPTIONS.map((o) => <option key={`smax-${o.value}`} value={o.value ?? ""}>{o.value === null ? "上限なし" : `${o.label}以下`}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
       <div className="border-b border-[#ddd] px-3 py-2.5">
         <p className="mb-1.5 text-[12px] font-bold text-[#333]">間取り</p>
         <div className="grid grid-cols-4 gap-[3px]">
@@ -937,7 +1055,7 @@ export default function MansionsPage() {
           <div className="sticky top-0 z-10 bg-white border-b border-[#ddd]">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#eee]">
               <div className="flex items-center gap-3">
-                <h1 className="text-[15px] font-bold text-[#333] shrink-0">賃貸物件一覧</h1>
+                <h1 className="text-[15px] font-bold text-[#333] shrink-0">物件一覧</h1>
                 <div className="relative flex-1 max-w-[320px]">
                   <svg className="absolute left-2.5 top-1/2 h-[14px] w-[14px] -translate-y-1/2 text-[#999]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />

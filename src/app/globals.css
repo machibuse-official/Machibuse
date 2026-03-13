@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", var(--font-noto-sans-jp), "Yu Gothic", "Meiryo", system-ui, sans-serif;
+  --font-sans: var(--font-inter), var(--font-noto-sans-jp), -apple-system, BlinkMacSystemFont, "Hiragino Sans", system-ui, sans-serif;
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
   --color-accent: #6366f1;
